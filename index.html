@@ -1,56 +1,245 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>CLink CFO | لوحة المدير المالي</title>
-<style>* { margin:0; padding:0; box-sizing:border-box; } body { background:#FFFDF7; } @media print { .np { display:none!important; } }</style>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="CLink CFO - لوحة المدير المالي | CFO Financial Dashboard"/>
+  <title>CLink CFO | لوحة المدير المالي</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { background:#FFFDF7; }
+    ::-webkit-scrollbar { width:6px; }
+    ::-webkit-scrollbar-track { background:#FEF8ED; }
+    ::-webkit-scrollbar-thumb { background:#E8D090; border-radius:3px; }
+    @media print { .np { display:none!important; } }
+  </style>
 </head>
 <body>
-<div id="root"></div>
-<script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-<script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
-<script type="text/babel" data-presets="react">
-const { useState, useMemo, useEffect } = React;
+  <div id="root"></div>
+  <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
+  <script type="text/babel" data-presets="react">
+    const { useState, useMemo, useEffect } = React;
 
-const useW = () => {
+
+const useScreen = () => {
   const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
-  useEffect(() => { const f = () => setW(window.innerWidth); window.addEventListener("resize", f); return () => window.removeEventListener("resize", f); }, []);
-  return { mob: w < 640, tab: w >= 640 && w < 1024 };
+  useEffect(() => { const f = () => setW(window.innerWidth); window.addEventListener("resize",f); return ()=>window.removeEventListener("resize",f); },[]);
+  return { mob: w<640, tab: w>=640&&w<1024 };
 };
 
-const G = { bg:"#FFFDF7",sur:"#FEF8ED",sur2:"#FDF3D8",bdr:"#E8D090",bdrS:"#F2E4B0",gold:"#C8A84B",goldD:"#9B7820",goldP:"#C8A84B18",goldL:"#FFF8E0",txt:"#1E1408",txtD:"#5C4020",txtF:"#9B7840",pos:"#1A6B1A",neg:"#B03020",wrn:"#C07010",inf:"#1A5C8A",pur:"#5B21B6" };
-
-const CURR = [
-  {code:"EGP",s:"ج.م",sE:"EGP",n:"الجنيه المصري",   nE:"Egyptian Pound",  f:"🇪🇬"},
-  {code:"SAR",s:"ر.س",sE:"SAR",n:"الريال السعودي",  nE:"Saudi Riyal",     f:"🇸🇦"},
-  {code:"AED",s:"د.إ",sE:"AED",n:"الدرهم الإماراتي",nE:"UAE Dirham",      f:"🇦🇪"},
-  {code:"KWD",s:"د.ك",sE:"KWD",n:"الدينار الكويتي", nE:"Kuwaiti Dinar",   f:"🇰🇼"},
-  {code:"BHD",s:"د.ب",sE:"BHD",n:"الدينار البحريني",nE:"Bahraini Dinar",  f:"🇧🇭"},
-  {code:"QAR",s:"ر.ق",sE:"QAR",n:"الريال القطري",   nE:"Qatari Riyal",    f:"🇶🇦"},
-  {code:"JOD",s:"د.أ",sE:"JOD",n:"الدينار الأردني", nE:"Jordanian Dinar", f:"🇯🇴"},
-];
-
-const FY = {
-  rev: [1850,2120,1980,2340,2680,2580,2890,3120,2950,3340,3580,3820],
-  cogs:[1110,1290,1190,1380,1540,1480,1620,1730,1640,1820,1930,2040],
-  opex:[220,245,230,270,295,285,320,345,330,365,390,410],
-  ga:  [165,165,165,170,180,175,190,195,195,210,215,220],
-  cash:[890,945,1020,1180,1240,1190,1340,1490,1410,1620,1810,2050],
-  ar:  [620,680,720,810,890,920,1020,1100,1180,1280,1390,1510],
-  ap:  [420,460,480,540,590,580,640,690,720,780,830,890],
+const G = {
+  bg:"#FFFDF7",sur:"#FEF8ED",sur2:"#FDF3D8",bdr:"#E8D090",bdrS:"#F2E4B0",
+  gold:"#C8A84B",goldD:"#9B7820",goldP:"#C8A84B18",goldL:"#FFF8E0",
+  txt:"#1E1408",txtD:"#5C4020",txtF:"#9B7840",
+  pos:"#1A6B1A",neg:"#B03020",wrn:"#C07010",inf:"#1A5C8A",pur:"#5B21B6",
 };
 
-const AGING = [
-  {ar:"0-30 يوم",  en:"0-30 days",  v:720,c:"#1A6B1A"},
-  {ar:"31-60 يوم", en:"31-60 days", v:410,c:"#1A5C8A"},
-  {ar:"61-90 يوم", en:"61-90 days", v:220,c:"#C07010"},
-  {ar:"91-120 يوم",en:"91-120 days",v:110,c:"#D4580A"},
-  {ar:"+120 يوم",  en:"+120 days",  v:50, c:"#B03020"},
+const CURR=[
+  {code:"EGP",s:"ج.م",sE:"EGP",n:"الجنيه المصري",nE:"Egyptian Pound",f:"🇪🇬"},
+  {code:"SAR",s:"ر.س",sE:"SAR",n:"الريال السعودي",nE:"Saudi Riyal",f:"🇸🇦"},
+  {code:"AED",s:"د.إ",sE:"AED",n:"الدرهم الإماراتي",nE:"UAE Dirham",f:"🇦🇪"},
+  {code:"KWD",s:"د.ك",sE:"KWD",n:"الدينار الكويتي",nE:"Kuwaiti Dinar",f:"🇰🇼"},
+  {code:"BHD",s:"د.ب",sE:"BHD",n:"الدينار البحريني",nE:"Bahraini Dinar",f:"🇧🇭"},
+  {code:"QAR",s:"ر.ق",sE:"QAR",n:"الريال القطري",nE:"Qatari Riyal",f:"🇶🇦"},
+  {code:"JOD",s:"د.أ",sE:"JOD",n:"الدينار الأردني",nE:"Jordanian Dinar",f:"🇯🇴"},
 ];
 
-const BUDGET = [
+// ── DEMO DATA ──────────────────────────────────────────────
+const DEMO = {
+  rev:  [1850,2120,1980,2340,2680,2580,2890,3120,2950,3340,3580,3820],
+  cogs: [1110,1270,1190,1380,1540,1480,1620,1730,1640,1820,1930,2040],
+  opex: [220,245,230,270,295,285,320,345,330,365,390,410],
+  ga:   [165,165,165,170,180,175,190,195,195,210,215,220],
+  cash: [890,945,1020,1180,1240,1190,1340,1490,1410,1620,1810,2050],
+  ar:   [620,680,720,810,890,920,1020,1100,1180,1280,1390,1510],
+  ap:   [420,460,480,540,590,580,640,690,720,780,830,890],
+  emp:  [42,42,44,44,45,45,47,47,48,48,50,50],
+};
+
+const MAR=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+const MEN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+// ── DAFTRA OAUTH ───────────────────────────────────────────
+const DAFTRA = {
+  CLIENT_ID: "565",
+  REDIRECT:  "https://clink-cfo.vercel.app/callback",
+  startOAuth() {
+    window.location.href = `https://app.daftra.com/oauth/authorize?client_id=${this.CLIENT_ID}&redirect_uri=${encodeURIComponent(this.REDIRECT)}&response_type=code`;
+  },
+  getToken()    { try{return sessionStorage.getItem("cfo_token");}catch{return null;} },
+  getSub()      { try{return sessionStorage.getItem("cfo_sub");}catch{return null;} },
+  save(t,s)     { try{sessionStorage.setItem("cfo_token",t);if(s)sessionStorage.setItem("cfo_sub",s);}catch{} },
+  clear()       { try{sessionStorage.removeItem("cfo_token");sessionStorage.removeItem("cfo_sub");}catch{} },
+
+  async api(token, sub, endpoint) {
+    // يجرب Bearer ثم apikey
+    for (const type of ["bearer","apikey"]) {
+      try {
+        const headers = type==="bearer"
+          ? {Authorization:`Bearer ${token}`, Accept:"application/json"}
+          : {apikey:token, Accept:"application/json"};
+        const base = sub ? `https://${sub}.daftra.com` : "https://app.daftra.com";
+        const r = await fetch(`${base}/api2/${endpoint}`, {headers});
+        if (r.ok) {
+          const d = await r.json();
+          if (d && (d.data !== undefined)) return d;
+        }
+      } catch {}
+    }
+    // Fallback: عبر الـ proxy
+    for (const type of ["bearer","apikey"]) {
+      try {
+        const url = `/api/daftra?subdomain=${encodeURIComponent(sub||"")}&apikey=${encodeURIComponent(token)}&endpoint=${encodeURIComponent(endpoint)}&token_type=${type}`;
+        const r = await fetch(url);
+        if (r.ok) {
+          const d = await r.json();
+          if (d && d.data !== undefined) return d;
+        }
+      } catch {}
+    }
+    return {data:[]};
+  },
+
+  async fetchAll(token, sub) {
+    const [inv, exp, inc] = await Promise.all([
+      this.api(token, sub, "invoices.json?limit=500"),
+      this.api(token, sub, "expenses.json?limit=500"),
+      this.api(token, sub, "incomes.json?limit=500"),
+    ]);
+    return {
+      invoices: inv.data||[],
+      expenses: exp.data||[],
+      incomes:  inc.data||[],
+    };
+  },
+};
+
+// ── PROCESS REAL DATA ──────────────────────────────────────
+const buildRealData = (invoices, expenses, incomes) => {
+  const now = new Date();
+  const months = Array.from({length:12},(_,i)=>{
+    const d = new Date(now.getFullYear(), now.getMonth()-11+i, 1);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+  });
+
+  const monthKey = v => {
+    if (!v) return null;
+    const d = new Date(v);
+    return isNaN(d) ? null : `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+  };
+
+  const byMonth = items => {
+    const map = {};
+    items.forEach(raw => {
+      const o = raw.Invoice||raw.Expense||raw.Income||raw;
+      const k = monthKey(o.date||o.issue_date||o.created||o.modified);
+      const v = parseFloat(o.total||o.net_total||o.amount||o.subtotal||o.grand_total||0);
+      if (k && v>0) map[k]=(map[k]||0)+v;
+    });
+    return months.map(m => Math.round((map[m]||0)/1000*10)/10);
+  };
+
+  const rev  = byMonth(invoices);
+  const exp2 = byMonth(expenses);
+  const inc2 = byMonth(incomes);
+  const revT = rev.map((r,i)=>Math.round((r+inc2[i])*10)/10);
+  const cogs = revT.map(r=>Math.round(r*0.55*10)/10);
+  const opex = exp2.map(e=>Math.round(e*0.60*10)/10);
+  const ga   = exp2.map(e=>Math.round(e*0.40*10)/10);
+  const ar   = revT.map(r=>Math.round(r*0.30*10)/10);
+  const ap   = exp2.map(e=>Math.round(e*0.25*10)/10);
+  let cash=500;
+  const cashA = revT.map((r,i)=>{
+    cash=Math.max(50, cash+r-exp2[i]);
+    return Math.round(cash*10)/10;
+  });
+  const emp = Array(12).fill(DEMO.emp[11]);
+  const totalRev = revT.reduce((a,b)=>a+b,0);
+  const totalExp = exp2.reduce((a,b)=>a+b,0);
+  return {
+    rev:revT,cogs,opex,ga,ar,ap,cash:cashA,emp,
+    hasData: totalRev>0||totalExp>0||invoices.length>0,
+    counts:{inv:invoices.length,exp:expenses.length},
+    months: revT.filter(v=>v>0).length,
+  };
+};
+
+// ── CALCS ──────────────────────────────────────────────────
+const pIdx = p=>p==="MTD"?[11]:p==="QTD"?[9,10,11]:Array.from({length:12},(_,i)=>i);
+const pArr = (arr,p)=>pIdx(p).map(i=>arr[i]||0);
+const pSum = (arr,p)=>pArr(arr,p).reduce((a,b)=>a+b,0);
+const fmt  = n=>new Intl.NumberFormat("ar-EG").format(Math.round(n));
+const fmtD = (n,d=1)=>new Intl.NumberFormat("ar-EG",{minimumFractionDigits:d,maximumFractionDigits:d}).format(n);
+
+const calcK = (period,D) => {
+  const r=pSum(D.rev,period),cg=pSum(D.cogs,period);
+  const ox=pSum(D.opex,period),ga=pSum(D.ga,period);
+  const gp=r-cg,op=gp-ox,eb=op-ga,tx=eb*.225,nt=eb-tx;
+  const cash=D.cash[D.cash.length-1]||0;
+  const ar=D.ar[D.ar.length-1]||0;
+  const ap=D.ap[D.ap.length-1]||0;
+  const emp=D.emp?D.emp[11]:50;
+  const bn=(pSum(D.opex,"YTD")+pSum(D.ga,"YTD"))/12||1;
+  const rw=bn>0?cash/(bn*.8):12;
+  const ca=cash+ar+480,cl=ap+280;
+  const fR=D.rev.reduce((a,b)=>a+b,0)||1;
+  const fC=D.cogs.reduce((a,b)=>a+b,0)||1;
+  const idx2=pIdx(period);
+  const prev=D.rev.slice(Math.max(0,idx2[0]-idx2.length),idx2[0]).reduce((a,b)=>a+b,0);
+  return {
+    r,cg,ox,ga,gp,op,eb,nt,tx,cash,ar,ap,emp,bn,rw,
+    gm:r>0?(gp/r)*100:0, nm:r>0?(nt/r)*100:0,
+    em:r>0?(eb/r)*100:0, xr:r>0?(ox/r)*100:0, gr:r>0?(ga/r)*100:0,
+    cr:ca/cl, qr:(cash+ar)/cl, wc:ca-cl,
+    dso:ar/(fR/365), dpo:ap/(fC/365),
+    grow:prev>0?((r-prev)/prev)*100:0,
+    revPerEmp:r>0?r*1000/emp:0,
+  };
+};
+
+// ── UI ─────────────────────────────────────────────────────
+const Bdg=({t,c=G.gold,sm})=>(
+  <span style={{display:"inline-block",padding:sm?"1px 6px":"2px 9px",borderRadius:20,background:c+"18",color:c,border:`1px solid ${c}30`,fontSize:sm?9:11,fontWeight:700}}>{t}</span>
+);
+const Hbar=({v,mx,c=G.gold,h=6})=>(
+  <div style={{height:h,background:G.sur2,borderRadius:3,overflow:"hidden",flex:1}}>
+    <div style={{height:"100%",width:`${Math.min((v/mx)*100,100)}%`,background:c,borderRadius:3}}/>
+  </div>
+);
+const Sp=({d,c,h=24,w=120})=>{
+  if(!d||!d.length)return null;
+  const mx=Math.max(...d),mn=Math.min(...d),rng=mx-mn||1;
+  const pts=d.map((v,i)=>`${(i/(d.length-1))*w},${h-((v-mn)/rng)*h}`).join(" ");
+  return <svg width={w} height={h} style={{overflow:"visible"}}>
+    <polyline points={`0,${h} ${pts} ${w},${h}`} fill={c+"22"}/>
+    <polyline points={pts} fill="none" stroke={c} strokeWidth="1.5"/>
+    <circle cx={w} cy={h-((d[d.length-1]-mn)/rng)*h} r="2.5" fill={c}/>
+  </svg>;
+};
+const Chart=({series,h=160,mons})=>{
+  const all=series.flatMap(s=>s.d);
+  const mx=Math.max(...all,1)*1.1;
+  const lp=d=>d.map((v,i)=>`${i===0?"M":"L"} ${40+i*(640/(d.length-1))},${18+(h-34)-(v/mx)*(h-34)}`).join(" ");
+  return <svg viewBox={`0 0 700 ${h}`} style={{width:"100%",height:h}}>
+    {[0,.5,1].map((p,i)=><line key={i} x1="40" x2="690" y1={18+(h-34)*p} y2={18+(h-34)*p} stroke={G.bdrS} strokeDasharray="3 5"/>)}
+    {[0,.5,1].map((p,i)=><text key={i} x="35" y={21+(h-34)*p} fill={G.txtF} fontSize="9" textAnchor="end">{fmt(mx*(1-p))}</text>)}
+    {series.map((s,i)=><path key={i} d={lp(s.d)} fill="none" stroke={s.c} strokeWidth="2.5" strokeDasharray={s.dash||"none"}/>)}
+    {mons&&mons.map((m,i)=><text key={i} x={40+i*(640/(mons.length-1))} y={h-2} fill={G.txtF} fontSize="9" textAnchor="middle">{m}</text>)}
+  </svg>;
+};
+
+const NAV=[
+  {id:"dash",  icon:"◈",ar:"لوحة التحكم",   en:"Dashboard"},
+  {id:"rev",   icon:"▲",ar:"الإيرادات",     en:"Revenue"},
+  {id:"exp",   icon:"◎",ar:"المصاريف",      en:"Expenses"},
+  {id:"bud",   icon:"⊞",ar:"الميزانية",     en:"Budget"},
+  {id:"liq",   icon:"◆",ar:"السيولة",       en:"Liquidity"},
+  {id:"rep",   icon:"✦",ar:"التقارير",      en:"Reports"},
+];
+
+const BUDGET=[
   {ar:"الإيرادات",         en:"Revenue",     b:32000,a:33250,pos:true},
   {ar:"تكلفة المبيعات",   en:"COGS",        b:18000,a:18770,pos:false},
   {ar:"إجمالي الربح",     en:"Gross Profit",b:14000,a:14480,pos:true},
@@ -59,326 +248,206 @@ const BUDGET = [
   {ar:"EBITDA",            en:"EBITDA",      b:8400, a:8530, pos:true},
   {ar:"صافي الربح",       en:"Net Profit",  b:6500, a:6611, pos:true},
 ];
-
-
-const DIR = {
-  products: FY.rev.map(r => Math.round(r * 0.755)),
-  services:  FY.rev.map(r => Math.round(r * 0.135)),
-  contracts: FY.rev.map(r => Math.round(r * 0.065)),
-  retail:    FY.rev.map(r => Math.round(r * 0.025)),
-};
-const OTH = {
-  rental:     [120,120,120,120,120,120,120,120,120,120,120,120],
-  interest:   [20,22,25,28,30,30,32,35,38,40,42,45],
-  investment: [0,0,0,60,0,0,0,80,0,0,70,0],
-  misc:       [15,12,10,8,10,8,6,5,4,3,8,5],
-};
-const totDIR = Array.from({length:12},(_,i) => DIR.products[i]+DIR.services[i]+DIR.contracts[i]+DIR.retail[i]);
-const totOTH = Array.from({length:12},(_,i) => OTH.rental[i]+OTH.interest[i]+OTH.investment[i]+OTH.misc[i]);
-
-
-// ── DAFTRA PROXY (يحل CORS عبر Vercel Function) ───────────
-const CLIENT_ID_CFO  = "565";
-const OAUTH_URL_CFO  = `https://app.daftra.com/oauth/authorize?client_id=${CLIENT_ID_CFO}&redirect_uri=${encodeURIComponent("https://clink-cfo.vercel.app/callback")}&response_type=code`;
-
-const DaftraAPI = {
-  startOAuth()   { window.location.href = OAUTH_URL_CFO; },
-  getToken()     { try { return sessionStorage.getItem("clink_cfo_token"); } catch { return null; } },
-  getSub()       { try { return sessionStorage.getItem("clink_cfo_sub");   } catch { return null; } },
-  saveToken(t,s) { try { sessionStorage.setItem("clink_cfo_token",t); if(s) sessionStorage.setItem("clink_cfo_sub",s); } catch {} },
-  clearToken()   { try { sessionStorage.removeItem("clink_cfo_token"); sessionStorage.removeItem("clink_cfo_sub"); } catch {} },
-
-  async req(token, sub, ep, tokenType="apikey") {
-    const url = `/api/daftra?subdomain=${encodeURIComponent(sub||"")}&apikey=${encodeURIComponent(token)}&endpoint=${encodeURIComponent(ep)}&token_type=${tokenType}`;
-    const r = await fetch(url);
-    if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.message||`HTTP ${r.status}`); }
-    return r.json();
-  },
-  async testConnection(token, sub) {
-    try { await DaftraAPI.req(token, sub, "invoices.json?limit=1"); return {success:true}; }
-    catch(e) { return {success:false, message:e.message}; }
-  },
-  async getFinancials(token, sub) {
-    // جرب Bearer أولاً ثم apikey
-    const tryFetch = async (ep) => {
-      for (const t of ["bearer","apikey"]) {
-        try {
-          const data = await DaftraAPI.req(token, sub, ep, t);
-          if (data && data.data) return data;
-        } catch {}
-      }
-      return {data:[]};
-    };
-    const [inv, exp, inc] = await Promise.all([
-      tryFetch("invoices.json?limit=500"),
-      tryFetch("expenses.json?limit=500"),
-      tryFetch("incomes.json?limit=500"),
-    ]);
-    return { invoices:inv.data||[], expenses:exp.data||[], incomes:inc.data||[] };
-  },||[], expenses: exp.data||[], incomes: inc.data||[] };
-  },
-};
-
-const pIdx = p => p==="MTD"?[11]:p==="QTD"?[9,10,11]:Array.from({length:12},(_,i)=>i);
-const pArr = (arr,p) => pIdx(p).map(i=>arr[i]);
-const pSum = (arr,p) => pArr(arr,p).reduce((a,b)=>a+b,0);
-const fmt  = n => new Intl.NumberFormat("ar-EG").format(Math.round(n));
-const fmtD = (n,d=1) => new Intl.NumberFormat("ar-EG",{minimumFractionDigits:d,maximumFractionDigits:d}).format(n);
-
-const calcK = (period, D=FY) => {
-  const r=pSum(D.rev,period),cg=pSum(D.cogs,period),ox=pSum(D.opex,period),ga=pSum(D.ga,period);
-  const gp=r-cg,op=gp-ox,eb=op-ga,tx=eb*.225,nt=eb-tx;
-  const cash=D.cash[D.cash.length-1]||0,ar=D.ar[D.ar.length-1]||0,ap=D.ap[D.ap.length-1]||0,inv=480;
-  const bn=(pSum(D.opex,"YTD")+pSum(D.ga,"YTD"))/12;
-  const rw=cash/(bn*.8),ca=cash+ar+inv,cl=ap+280;
-  const dso=ar/(pSum(FY.rev,"YTD")/365),dio=inv/(pSum(FY.cogs,"YTD")/365),dpo=ap/(pSum(FY.cogs,"YTD")/365);
-  const idx=pIdx(period),prev=D.rev.slice(Math.max(0,idx[0]-idx.length),idx[0]).reduce((a,b)=>a+b,0);
-  return {r,cg,ox,ga,gp,op,eb,nt,tx,cash,ar,ap,inv,bn,rw,
-    gm:r>0?(gp/r)*100:0,nm:r>0?(nt/r)*100:0,em:r>0?(eb/r)*100:0,
-    xr:r>0?(ox/r)*100:0,gr:r>0?(ga/r)*100:0,
-    cr:ca/cl,qr:(cash+ar)/cl,cashR:cash/cl,wc:ca-cl,
-    dso,dio,dpo,ccc:dso+dio-dpo,
-    tAR:AGING.reduce((s,x)=>s+x.v,0),
-    grow:prev>0?((r-prev)/prev)*100:0};
-};
+const AR_AGING=[
+  {ar:"0-30 يوم",en:"0-30 days",v:720,c:"#1A6B1A"},
+  {ar:"31-60 يوم",en:"31-60 days",v:410,c:"#1A5C8A"},
+  {ar:"61-90 يوم",en:"61-90 days",v:220,c:"#C07010"},
+  {ar:"91-120 يوم",en:"91-120 days",v:110,c:"#D4580A"},
+  {ar:"+120 يوم",en:"+120 days",v:50,c:"#B03020"},
+];
 
 function App() {
-  const {mob,tab} = useW();
-  const [page,   setPage]   = useState("dash");
-  const [lang,     setLang]     = useState("AR");
-  const [money,    setMoney]    = useState(CURR[0]);
-  const [period,   setPeriod]   = useState("YTD");
-  const [showM,    setShowM]    = useState(false);
-  const [expV,     setExpV]     = useState("chart");
-  const [revV,     setRevV]     = useState("breakdown");
-  const [conn,     setConn]     = useState({sub:"",key:"",status:"demo",token:""});
-  const [showConn, setShowConn] = useState(false);
-  const [connMsg,  setConnMsg]  = useState("");
-  const [authLoad, setAuthLoad] = useState(false);
-  const [realData, setRealData]       = useState(null);
-  const [dataLoading, setDataLoading] = useState(false);
+  const {mob,tab}=useScreen();
+  const [page,    setPage]    = useState("dash");
+  const [lang,    setLang]    = useState("AR");
+  const [money,   setMoney]   = useState(CURR[0]);
+  const [period,  setPeriod]  = useState("YTD");
+  const [showM,   setShowM]   = useState(false);
+  const [showConn,setShowConn]= useState(false);
+  const [conn,    setConn]    = useState({sub:"",key:"",status:"demo",token:""});
+  const [connMsg, setConnMsg] = useState("");
+  const [realData,setRealData]= useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const ar = lang === "AR";
-  const SY = ar ? money.s : money.sE;
-  const UN = ar ? `ألف ${money.s}` : `K ${money.sE}`;
+  const ar  = lang==="AR";
+  const dir = ar?"rtl":"ltr";
+  const SY  = ar?money.s:money.sE;
+  const UN  = ar?`ألف ${money.s}`:`K ${money.sE}`;
+  const D   = useMemo(()=>realData||DEMO,[realData]);
+  const k   = useMemo(()=>calcK(period,D),[period,D]);
+  const cRev= useMemo(()=>pArr(D.rev,period),[period,D]);
+  const cC  = useMemo(()=>pArr(D.cogs,period),[period,D]);
+  const cO  = useMemo(()=>pArr(D.opex,period),[period,D]);
+  const cG  = useMemo(()=>pArr(D.ga,period),[period,D]);
+  const prf = cRev.map((v,i)=>v-cC[i]-cO[i]-cG[i]);
+  const cMs = useMemo(()=>pIdx(period).map(i=>ar?MAR[i]:MEN[i]),[period,lang]);
+  const SW  = mob?0:tab?58:220;
 
-  // استخدم البيانات الحقيقية إذا توفرت وإلا Demo
-  const DATA = useMemo(() => realData ? {
-    rev:realData.rev, cogs:realData.cogs, opex:realData.opex,
-    ga:realData.ga,   cash:realData.cash, ar:realData.ar,
-    ap:realData.ap,   emp:FY.emp,
-  } : FY, [realData]);
-
-  const k  = useMemo(() => calcK(period, DATA), [period, DATA]);
-  const cRev = useMemo(() => pArr(DATA.rev, period), [period,DATA]);
-  const cO = useMemo(() => pArr(DATA.opex,period), [period,DATA]);
-  const cG = useMemo(() => pArr(DATA.ga,  period), [period,DATA]);
-  const cC = useMemo(() => pArr(DATA.cogs,period), [period,DATA]);
-  const prf = cRev.map((v,i) => v-cC[i]-cO[i]-cG[i]);
-  const SW  = mob ? 0 : tab ? 56 : 210;
-
-  const MAR = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
-  const MEN = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const cMs = pIdx(period).map(i => ar ? MAR[i] : MEN[i]);
-
-  // ── OAuth Callback Handler ──────────────────────────────────
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const auth = params.get("auth");
-    if (auth === "success" || auth === "code") {
-      const token = params.get("token") || params.get("code");
-      const sub   = params.get("subdomain") || "";
-      if (token) {
-        DaftraAPI.saveToken(token, sub);
-        setConn(c=>({...c, status:"connected", token, sub}));
-        window.history.replaceState({}, "", "/");
+  // ── OAuth callback handler ───────────────────────────────
+  useEffect(()=>{
+    const params=new URLSearchParams(window.location.search);
+    const auth=params.get("auth");
+    if(auth==="success"||auth==="code"){
+      const token=params.get("token")||params.get("code");
+      const sub=params.get("subdomain")||"";
+      if(token){
+        DAFTRA.save(token,sub);
+        setConn(c=>({...c,status:"connected",token,sub}));
+        window.history.replaceState({},"","/");
+        setTimeout(()=>doFetch(token,sub),800);
       }
-    } else if (auth === "error") {
+    } else if(auth==="error"){
       setConnMsg(ar?`❌ فشل: ${params.get("reason")||""}`:`❌ Failed: ${params.get("reason")||""}`);
-      window.history.replaceState({}, "", "/");
+      window.history.replaceState({},"","/");
     }
-    const savedToken = DaftraAPI.getToken();
-    const savedSub   = DaftraAPI.getSub();
-    if (savedToken && !auth) {
-      setConn(c=>({...c, status:"connected", token:savedToken, sub:savedSub||""}));
-      // جلب البيانات الحقيقية عند استعادة الجلسة
-      setTimeout(() => fetchRealData(savedToken, savedSub||""), 500);
+    const t=DAFTRA.getToken(), s=DAFTRA.getSub();
+    if(t&&!auth){
+      setConn(c=>({...c,status:"connected",token:t,sub:s||""}));
+      setTimeout(()=>doFetch(t,s||""),600);
     }
-  }, []);
+  },[]);
 
-  const connectOAuth = () => DaftraAPI.startOAuth();
-
-  // ── جلب البيانات الحقيقية من دفترة ──────────────────────
-  const fetchRealData = async (token, sub) => {
-    if (!token) return;
-    setDataLoading(true);
-    try {
-      const fin = await DaftraAPI.getFinancials(token, sub||"");
-      console.log("Daftra data:", fin.invoices.length, "invoices,", fin.expenses.length, "expenses");
-      // معالجة حتى لو كانت البيانات قليلة
-      const processed = processRealData(fin.invoices, fin.expenses, fin.incomes);
-      if (processed.hasData) {
-        setRealData(processed);
-        return processed;
-      } else if (fin.invoices.length > 0 || fin.expenses.length > 0) {
-        // البيانات موجودة لكن قديمة — استخدمها على أي حال
-        processed.hasData = true;
-        setRealData(processed);
-        return processed;
+  // ── Fetch real data ──────────────────────────────────────
+  const doFetch=async(token,sub)=>{
+    if(!token)return;
+    setLoading(true);
+    try{
+      const fin=await DAFTRA.fetchAll(token,sub);
+      console.log("Daftra fetched:",fin.invoices.length,"inv,",fin.expenses.length,"exp");
+      const rd=buildRealData(fin.invoices,fin.expenses,fin.incomes);
+      if(rd.hasData){
+        setRealData(rd);
+        setConnMsg(ar?`✅ ${rd.counts.inv} فاتورة | ${rd.counts.exp} مصروف`:`✅ ${rd.counts.inv} invoices | ${rd.counts.exp} expenses`);
+      } else {
+        setConnMsg(ar?"⚠️ لا توجد بيانات مالية في الفترة الحالية":"⚠️ No financial data in current period");
       }
-    } catch(e) {
-      console.warn("fetchRealData error:", e.message);
-    } finally {
-      setDataLoading(false);
+    }catch(e){
+      setConnMsg(ar?`❌ ${e.message}`:`❌ ${e.message}`);
+    }finally{
+      setLoading(false);
     }
-    return null;
   };
 
-  const connectDaftra = async () => {
-    if (!conn.sub || !conn.key) { setConnMsg(ar?"أدخل النطاق ومفتاح API":"Enter subdomain and API key"); return; }
+  const connectOAuth=()=>DAFTRA.startOAuth();
+  const connectKey=async()=>{
+    if(!conn.sub||!conn.key){setConnMsg(ar?"أدخل البيانات":"Enter credentials");return;}
     setConn(c=>({...c,status:"connecting"}));
-    setConnMsg(ar?"جاري الاتصال...":"Connecting...");
-    try {
-      const test = await DaftraAPI.testConnection(conn.sub, conn.key);
-      if (!test.success) throw new Error(test.message);
-      setConn(c=>({...c,status:"connected"}));
-      setConnMsg(ar?"✅ تم الاتصال بدفترة! البيانات الآن من حسابك الحقيقي":"✅ Connected to Daftra! Data now from your real account");
-      setShowConn(false);
-    } catch(err) {
-      setConn(c=>({...c,status:"demo"}));
-      const msg = err.message||"";
-      if(msg.includes("401")||msg.includes("API")) setConnMsg(ar?"❌ مفتاح API غير صحيح":"❌ Invalid API Key");
-      else if(msg.includes("404")) setConnMsg(ar?"❌ النطاق غير موجود":"❌ Subdomain not found");
-      else setConnMsg(ar?`❌ ${msg}`:`❌ ${msg}`);
-    }
+    DAFTRA.save(conn.key,conn.sub);
+    setConn(c=>({...c,status:"connected",token:conn.key}));
+    setShowConn(false);
+    await doFetch(conn.key,conn.sub);
+  };
+  const disconnect=()=>{
+    DAFTRA.clear();
+    setConn({sub:"",key:"",status:"demo",token:""});
+    setRealData(null);
+    setConnMsg("");
   };
 
-  const doExcel = () => {
-    const rows = BUDGET.map(r => { const v=r.a-r.b; return [(ar?r.ar:r.en),r.b,r.a,v,((v/r.b)*100).toFixed(1)+"%"].join(","); });
-    const csv = ["Item,Budget,Actual,Variance,Var%",...rows].join("\n");
-    const blob = new Blob(["\uFEFF"+csv],{type:"text/csv"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob); a.download = "CLink_CFO.csv"; a.click();
+  const doExcel=()=>{
+    const rows=BUDGET.map(r=>{const v=r.a-r.b;return[(ar?r.ar:r.en),r.b,r.a,v,((v/r.b)*100).toFixed(1)+"%"].join(",");});
+    const csv=["Item,Budget,Actual,Variance,Var%",...rows].join("\n");
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:"text/csv"}));
+    a.download="CLink_CFO.csv";a.click();
   };
 
-  const NAV = [
-    {id:"dash",  icon:"◈", ar:"لوحة التحكم", en:"Dashboard"},
-    {id:"rev",   icon:"▲", ar:"الإيرادات",    en:"Revenue"},
-    {id:"exp",   icon:"◎", ar:"المصاريف",    en:"Expenses"},
-    {id:"bud",   icon:"⊞", ar:"الميزانية",   en:"Budget"},
-    {id:"liq",   icon:"◆", ar:"السيولة",     en:"Liquidity"},
-    {id:"rep",   icon:"✦", ar:"التقارير",    en:"Reports"},
-  ];
-  const navLabel = id => ar ? NAV.find(n=>n.id===id)?.ar : NAV.find(n=>n.id===id)?.en;
-
-  const dir = ar ? "rtl" : "ltr";
-
-  // Chart SVG
-  const Chart = ({series,h=160,mons}) => {
-    const all = series.flatMap(s=>s.d);
-    const mx  = Math.max(...all)*1.1||1;
-    const lp  = d => d.map((v,i)=>`${i===0?"M":"L"} ${40+i*(640/(d.length-1))},${18+(h-34)-(v/mx)*(h-34)}`).join(" ");
-    return (
-      <svg viewBox={`0 0 700 ${h}`} style={{width:"100%",height:h}}>
-        {[0,.5,1].map((p,i) => <line key={i} x1="40" x2="690" y1={18+(h-34)*p} y2={18+(h-34)*p} stroke={G.bdrS} strokeDasharray="3 5"/>)}
-        {[0,.5,1].map((p,i) => <text key={i} x="35" y={21+(h-34)*p} fill={G.txtF} fontSize="9" textAnchor="end">{fmt(mx*(1-p))}</text>)}
-        {series.map((s,i) => <path key={i} d={lp(s.d)} fill="none" stroke={s.c} strokeWidth="2.5" strokeDasharray={s.dash||"none"}/>)}
-        {mons && mons.map((m,i) => <text key={i} x={40+i*(640/(mons.length-1))} y={h-2} fill={G.txtF} fontSize="9" textAnchor="middle">{m}</text>)}
-      </svg>
-    );
-  };
-
-  // Sparkline
-  const Sp = ({d,color,h=24,w=120}) => {
-    if(!d||!d.length) return null;
-    const mx=Math.max(...d),mn=Math.min(...d),rng=mx-mn||1;
-    const pts = d.map((v,i) => `${(i/(d.length-1))*w},${h-((v-mn)/rng)*h}`).join(" ");
-    return (
-      <svg width={w} height={h} style={{overflow:"visible"}}>
-        <polyline points={`0,${h} ${pts} ${w},${h}`} fill={color+"22"}/>
-        <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5"/>
-        <circle cx={w} cy={h-((d[d.length-1]-mn)/rng)*h} r="2.5" fill={color}/>
-      </svg>
-    );
-  };
-
-  const Bdg = ({t, c=G.gold}) => (
-    <span style={{display:"inline-block",padding:"2px 8px",borderRadius:20,background:c+"18",color:c,border:`1px solid ${c}30`,fontSize:11,fontWeight:700}}>{t}</span>
-  );
-
-  const Hbar = ({v,mx,c=G.gold,h=6}) => (
-    <div style={{height:h,background:G.sur2,borderRadius:3,overflow:"hidden",flex:1}}>
-      <div style={{height:"100%",width:`${Math.min((v/mx)*100,100)}%`,background:c,borderRadius:3}}/>
-    </div>
-  );
-
-  // KPI Card
-  const KPI = ({label,val,sub,trend,spData,c}) => (
-    <div style={{background:"white",border:`1px solid ${G.bdr}`,borderTop:`3px solid ${c}`,borderRadius:14,padding:"13px 15px",boxShadow:G.shd}}>
+  // ── KPI Card ─────────────────────────────────────────────
+  const KPI=({label,val,sub,trend,sp,c})=>(
+    <div style={{background:"white",border:`1px solid ${G.bdr}`,borderTop:`3px solid ${c}`,borderRadius:14,padding:"13px 15px",boxShadow:G.shd||"0 2px 12px rgba(200,168,75,0.12)"}}>
       <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
         <div style={{fontSize:10,color:G.txtF,fontWeight:600,flex:1,lineHeight:1.3}}>{label}</div>
-        {trend !== undefined && <Bdg t={(trend>=0?"▲":"▼")+fmtD(Math.abs(trend))+"%"} c={trend>=0?G.pos:G.neg}/>}
+        {trend!==undefined&&<Bdg t={(trend>=0?"▲":"▼")+fmtD(Math.abs(trend))+"%"} c={trend>=0?G.pos:G.neg} sm/>}
       </div>
-      <div style={{fontSize:mob?16:21,fontWeight:800,color:c,marginBottom:2}}>{val}</div>
-      {sub && <div style={{fontSize:10,color:G.txtF,marginBottom:5}}>{sub}</div>}
-      {spData && <Sp d={spData} color={c} w={mob?90:120}/>}
+      <div style={{fontSize:mob?15:20,fontWeight:800,color:c,marginBottom:2}}>{val}</div>
+      {sub&&<div style={{fontSize:10,color:G.txtF,marginBottom:4}}>{sub}</div>}
+      {sp&&<Sp d={sp} c={c} w={mob?90:120}/>}
     </div>
   );
 
-  // ── DASHBOARD ──
-  const Dash = () => (
+  // ── Sidebar ───────────────────────────────────────────────
+  const Sidebar=()=>(
+    <div style={{width:SW,position:"fixed",top:0,[ar?"right":"left"]:0,bottom:0,background:"white",zIndex:20,borderLeft:ar?`1px solid ${G.bdr}`:"none",borderRight:!ar?`1px solid ${G.bdr}`:"none",display:"flex",flexDirection:"column"}}>
+      <div style={{padding:tab?"10px 6px":"12px 14px",borderBottom:`1px solid ${G.bdrS}`}}>
+        <svg width={tab?32:26} height={tab?32:26} viewBox="0 0 48 48">
+          <rect width="48" height="48" rx="11" fill={G.gold}/>
+          <path d="M 33.19 14.81 A 13 13 0 1 0 33.19 33.19" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round"/>
+          <circle cx="33.19" cy="14.81" r="3" fill="white"/><circle cx="33.19" cy="33.19" r="3" fill="white"/>
+          <line x1="36" y1="14.81" x2="43" y2="14.81" stroke="white" strokeWidth="1.5" strokeDasharray="2 2" opacity=".7"/>
+          <line x1="36" y1="33.19" x2="43" y2="33.19" stroke="white" strokeWidth="1.5" strokeDasharray="2 2" opacity=".7"/>
+          <circle cx="44.5" cy="24" r="2" fill="white" opacity=".85"/>
+        </svg>
+        {!tab&&<div style={{marginTop:6}}><div style={{fontSize:14,fontWeight:900,color:G.goldD,lineHeight:1,fontFamily:"Georgia,serif"}}>CLink<span style={{color:G.gold}}>·</span></div><div style={{fontSize:8,color:G.gold,letterSpacing:2,fontWeight:700}}>CFO DASHBOARD</div></div>}
+      </div>
+      <nav style={{flex:1,padding:tab?"8px 4px":"10px 8px",overflowY:"auto"}}>
+        {NAV.map(n=>(
+          <div key={n.id} onClick={()=>setPage(n.id)} style={{display:"flex",alignItems:"center",gap:tab?0:8,justifyContent:tab?"center":"flex-start",padding:tab?"10px":"8px 10px",borderRadius:8,marginBottom:2,cursor:"pointer",background:page===n.id?G.goldP:"transparent",border:`1px solid ${page===n.id?G.gold+"50":"transparent"}`,color:page===n.id?G.gold:G.txtF,fontWeight:page===n.id?700:400,fontSize:12}}>
+            <span style={{fontSize:14}}>{n.icon}</span>
+            {!tab&&<span>{ar?n.ar:n.en}</span>}
+          </div>
+        ))}
+      </nav>
+      {!tab&&<div style={{padding:"8px 12px",borderTop:`1px solid ${G.bdrS}`,fontSize:9,color:G.txtF}}>IFRS • {UN}</div>}
+    </div>
+  );
+
+  const BottomNav=()=>(
+    <div style={{position:"fixed",bottom:0,left:0,right:0,background:"white",borderTop:`1px solid ${G.bdr}`,display:"flex",zIndex:20}}>
+      {NAV.map(n=>(
+        <div key={n.id} onClick={()=>setPage(n.id)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"5px 2px",cursor:"pointer",color:page===n.id?G.gold:G.txtF,borderTop:`2px solid ${page===n.id?G.gold:"transparent"}`,background:page===n.id?G.goldP:"transparent"}}>
+          <span style={{fontSize:13,marginBottom:1}}>{n.icon}</span>
+          <span style={{fontSize:7,fontWeight:page===n.id?700:400}}>{(ar?n.ar:n.en).split(" ")[0]}</span>
+        </div>
+      ))}
+    </div>
+  );
+
+  // ── DASHBOARD ─────────────────────────────────────────────
+  const Dash=()=>(
     <div>
-      {/* Cash Runway Banner */}
       <div style={{background:`linear-gradient(135deg,${G.gold},${G.goldD})`,borderRadius:12,padding:"14px 18px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center",boxShadow:`0 4px 20px ${G.gold}50`}}>
         <div>
           <div style={{fontSize:11,color:"rgba(255,255,255,0.85)",fontWeight:600}}>{ar?"فترة الاستمرارية النقدية":"Cash Runway"}</div>
-          <div style={{fontSize:mob?26:36,fontWeight:900,color:"white",lineHeight:1.1}}>{fmtD(k.rw,1)} <span style={{fontSize:14,opacity:.85}}>{ar?"أشهر":"months"}</span></div>
-          <div style={{fontSize:10,color:"rgba(255,255,255,0.7)",marginTop:3}}>{ar?"معدل الإنفاق:":"Burn Rate:"} {fmt(k.bn*1000)} {SY}</div>
+          <div style={{fontSize:mob?24:34,fontWeight:900,color:"white",lineHeight:1.1}}>{fmtD(k.rw,1)} <span style={{fontSize:14,opacity:.85}}>{ar?"أشهر":"months"}</span></div>
+          <div style={{fontSize:10,color:"rgba(255,255,255,0.7)",marginTop:3}}>{ar?"معدل الإنفاق:":"Burn:"} {fmt(k.bn*1000)} {SY}</div>
         </div>
-        <div style={{textAlign:"center"}}>
+        <div style={{textAlign:"center",background:"rgba(255,255,255,0.15)",borderRadius:10,padding:"10px 16px"}}>
           <div style={{fontSize:10,color:"rgba(255,255,255,0.8)"}}>{ar?"النقدية":"Cash"}</div>
-          <div style={{fontSize:22,fontWeight:800,color:"white"}}>{fmt(k.cash*1000)}</div>
+          <div style={{fontSize:20,fontWeight:800,color:"white"}}>{fmt(k.cash*1000)}</div>
           <div style={{fontSize:9,color:"rgba(255,255,255,0.7)"}}>{UN}</div>
         </div>
       </div>
-
-      {/* KPIs */}
       <div style={{display:"grid",gridTemplateColumns:mob?"1fr 1fr":"repeat(4,1fr)",gap:12,marginBottom:14}}>
-        <KPI label={ar?"إجمالي الإيرادات":"Total Revenue"} val={`${fmt(k.r*1000)} ${SY}`}  sub={`${period} • ${k.grow>=0?"+":""}${fmtD(k.grow)}%`} trend={k.grow} spData={cRev} c={G.inf}/>
-        <KPI label={ar?"إجمالي الربح":"Gross Profit"}      val={`${fmt(k.gp*1000)} ${SY}`} sub={`GM: ${fmtD(k.gm)}%`} trend={6.4} spData={cRev.map((v,i)=>v-cC[i])} c={G.pos}/>
-        <KPI label={ar?"صافي الربح":"Net Profit"}          val={`${fmt(k.nt*1000)} ${SY}`} sub={`NM: ${fmtD(k.nm)}%`} trend={5.2} spData={prf} c={G.gold}/>
-        <KPI label="EBITDA"                                  val={`${fmt(k.eb*1000)} ${SY}`} sub={`EM: ${fmtD(k.em)}%`} trend={4.8} spData={prf} c={G.pur}/>
+        <KPI label={ar?"إجمالي الإيرادات":"Total Revenue"} val={`${fmt(k.r*1000)} ${SY}`}  sub={`${period} | GM ${fmtD(k.gm)}%`} trend={k.grow} sp={cRev} c={G.inf}/>
+        <KPI label={ar?"إجمالي الربح":"Gross Profit"}      val={`${fmt(k.gp*1000)} ${SY}`} sub={`GM: ${fmtD(k.gm)}%`}           trend={6.4}    sp={cRev.map((v,i)=>v-cC[i])} c={G.pos}/>
+        <KPI label={ar?"صافي الربح":"Net Profit"}          val={`${fmt(k.nt*1000)} ${SY}`} sub={`NM: ${fmtD(k.nm)}%`}           trend={5.2}    sp={prf} c={G.gold}/>
+        <KPI label="EBITDA"                                  val={`${fmt(k.eb*1000)} ${SY}`} sub={`EM: ${fmtD(k.em)}%`}           trend={4.8}    sp={prf} c={G.pur}/>
       </div>
-
-      {/* Chart + P&L */}
-      <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"2fr 1fr",gap:14,marginBottom:14}}>
-        <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd}}>
+      <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"2fr 1fr",gap:14}}>
+        <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px"}}>
           <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>◈ {ar?"الإيرادات وصافي الربح":"Revenue & Net Profit"}</div>
           <Chart series={[{d:cRev,c:G.inf},{d:prf,c:G.pos,dash:"5 3"}]} h={mob?130:170} mons={cMs}/>
           <div style={{display:"flex",gap:14,marginTop:6,justifyContent:"center"}}>
-            {[[G.inf,ar?"الإيراد":"Revenue"],[G.pos,ar?"صافي الربح":"Net Profit"]].map(([c,l]) => (
-              <div key={l} style={{display:"flex",alignItems:"center",gap:5}}>
-                <div style={{width:14,height:2,background:c}}/>
-                <span style={{fontSize:10,color:G.txtD}}>{l}</span>
-              </div>
+            {[[G.inf,ar?"الإيراد":"Revenue"],[G.pos,ar?"صافي الربح":"Net Profit"]].map(([c,l])=>(
+              <div key={l} style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:14,height:2,background:c}}/><span style={{fontSize:10,color:G.txtD}}>{l}</span></div>
             ))}
           </div>
         </div>
-        <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd}}>
-          <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>◎ {ar?"قائمة الدخل":"Income Statement"}</div>
+        <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px"}}>
+          <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>◎ {ar?"قائمة الدخل":"P&L"}</div>
           {[
-            {l:ar?"الإيرادات":"Revenue",        v:k.r,    c:G.inf, b:true,  s:"100%"},
-            {l:"(−) COGS",                       v:-k.cg,  c:G.neg, b:false, s:`${fmtD(100-k.gm)}%`},
-            {l:ar?"إجمالي الربح":"Gross Profit", v:k.gp,   c:G.pos, b:true,  s:`${fmtD(k.gm)}%`, d:true},
-            {l:"(−) OpEx + G&A",                 v:-(k.ox+k.ga),c:G.wrn,b:false},
-            {l:"EBITDA",                          v:k.eb,   c:G.inf, b:true,  s:`${fmtD(k.em)}%`, d:true},
-            {l:"(−) Tax 22.5%",                  v:-k.tx,  c:G.neg, b:false},
-            {l:ar?"صافي الربح":"Net Profit",     v:k.nt,   c:G.pos, b:true,  s:`${fmtD(k.nm)}%`, big:true},
-          ].map(({l,v,c,b,s,d,big},i) => (
+            {l:ar?"الإيرادات":"Revenue",       v:k.r,   c:G.inf,  b:true},
+            {l:"(−) COGS",                      v:-k.cg, c:G.neg},
+            {l:ar?"إجمالي الربح":"Gross Profit",v:k.gp,  c:G.pos,  b:true,d:true,s:`${fmtD(k.gm)}%`},
+            {l:"(−) OpEx+G&A",                  v:-(k.ox+k.ga),c:G.wrn},
+            {l:"EBITDA",                         v:k.eb,  c:G.inf,  b:true,d:true,s:`${fmtD(k.em)}%`},
+            {l:"(−) Tax 22.5%",                 v:-k.tx, c:G.neg},
+            {l:ar?"صافي الربح":"Net Profit",   v:k.nt,  c:G.pos,  b:true,big:true,s:`${fmtD(k.nm)}%`},
+          ].map(({l,v,c,b,d,s,big},i)=>(
             <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:big?"9px 0 2px":"4px 0",borderBottom:d||big?`1px solid ${G.bdr}`:`1px solid ${G.bdrS}`,borderTop:big?`2px solid ${G.bdr}`:"none",marginTop:big?4:0}}>
               <span style={{fontSize:big?11:9,color:b?G.txt:G.txtD,fontWeight:b?700:400}}>{l}</span>
               <div style={{display:"flex",alignItems:"baseline",gap:3}}>
-                {s && <span style={{fontSize:8,color:G.txtF}}>{s}</span>}
+                {s&&<span style={{fontSize:8,color:G.txtF}}>{s}</span>}
                 <span style={{fontSize:big?13:10,fontWeight:b?800:600,color:c}}>{v<0?"(":""}{fmt(Math.abs(v))}{v<0?")":""}</span>
               </div>
             </div>
@@ -388,17 +457,17 @@ function App() {
     </div>
   );
 
-  // ── EXPENSES ──
-  const Exp = () => (
+  // ── EXPENSES ─────────────────────────────────────────────
+  const Exp=()=>(
     <div>
       <div style={{display:"grid",gridTemplateColumns:mob?"1fr 1fr":"repeat(4,1fr)",gap:12,marginBottom:14}}>
         {[
-          ["COGS",                                  `${fmt(k.cg*1000)} ${SY}`,`${fmtD(100-k.gm)}%`,G.neg],
-          [ar?"مصاريف التشغيل":"OpEx",              `${fmt(k.ox*1000)} ${SY}`,`${fmtD(k.xr)}%`,    G.wrn],
-          [ar?"المصاريف العمومية":"G&A",            `${fmt(k.ga*1000)} ${SY}`,`${fmtD(k.gr)}%`,    G.pur],
-          [ar?"إجمالي OpEx+G&A":"Total OpEx+G&A",  `${fmt((k.ox+k.ga)*1000)} ${SY}`,`${fmtD(k.xr+k.gr)}%`,G.gold],
-        ].map(([l,v,r,c],i) => (
-          <div key={i} style={{background:"white",border:`1px solid ${G.bdr}`,borderRight:ar?`4px solid ${c}`:"none",borderLeft:!ar?`4px solid ${c}`:"none",borderRadius:"4px 14px 14px 4px",padding:"13px 15px",boxShadow:G.shd}}>
+          ["COGS",`${fmt(k.cg*1000)} ${SY}`,`${fmtD(100-k.gm)}%`,G.neg],
+          [ar?"مصاريف التشغيل":"OpEx",`${fmt(k.ox*1000)} ${SY}`,`${fmtD(k.xr)}%`,G.wrn],
+          [ar?"المصاريف العمومية":"G&A",`${fmt(k.ga*1000)} ${SY}`,`${fmtD(k.gr)}%`,G.pur],
+          [ar?"إجمالي OpEx+G&A":"Total OpEx+G&A",`${fmt((k.ox+k.ga)*1000)} ${SY}`,`${fmtD(k.xr+k.gr)}%`,G.gold],
+        ].map(([l,v,r,c],i)=>(
+          <div key={i} style={{background:"white",border:`1px solid ${G.bdr}`,borderRight:ar?`4px solid ${c}`:"none",borderLeft:!ar?`4px solid ${c}`:"none",borderRadius:"4px 14px 14px 4px",padding:"13px 15px"}}>
             <div style={{fontSize:10,color:G.txtF,fontWeight:600,marginBottom:4}}>{l}</div>
             <div style={{fontSize:mob?14:18,fontWeight:800,color:c}}>{v}</div>
             <div style={{display:"flex",justifyContent:"space-between",marginTop:3}}>
@@ -408,94 +477,35 @@ function App() {
           </div>
         ))}
       </div>
-      <div style={{display:"flex",gap:8,marginBottom:14}}>
-        {[["chart",ar?"الرسم البياني":"Chart"],["table",ar?"التفصيل":"Detail"]].map(([v,l]) => (
-          <button key={v} onClick={() => setExpV(v)} style={{padding:"6px 14px",borderRadius:7,border:`1.5px solid ${expV===v?G.gold:G.bdr}`,background:expV===v?G.gold:"white",color:expV===v?"white":G.txtD,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-            {l}
-          </button>
-        ))}
+      <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px"}}>
+        <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>◈ {ar?"اتجاه المصاريف":"Expense Trend"}</div>
+        <Chart series={[{d:cO,c:G.wrn},{d:cG,c:G.pur}]} h={mob?130:170} mons={cMs}/>
       </div>
-      {expV==="chart" ? (
-        <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd}}>
-          <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>◈ {ar?"اتجاه OpEx و G&A":"OpEx & G&A Trend"}</div>
-          <Chart series={[{d:cO,c:G.wrn},{d:cG,c:G.pur}]} h={mob?130:170} mons={cMs}/>
-          <div style={{display:"flex",gap:14,marginTop:6,justifyContent:"center"}}>
-            {[[G.wrn,"OpEx"],[G.pur,"G&A"]].map(([c,l]) => (
-              <div key={l} style={{display:"flex",alignItems:"center",gap:5}}>
-                <div style={{width:14,height:2,background:c}}/>
-                <span style={{fontSize:10,color:G.txtD}}>{l}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"1fr 1fr",gap:14}}>
-          {[[ar?"مصاريف التشغيل (OpEx)":"Operating Expenses",k.xr,G.wrn,k.ox],
-            [ar?"المصاريف العمومية (G&A)":"G&A Expenses",k.gr,G.pur,k.ga]
-          ].map(([title,ratio,color,total],si) => (
-            <div key={si} style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd}}>
-              <div style={{paddingBottom:10,marginBottom:12,borderBottom:`2px solid ${color}`}}>
-                <div style={{fontSize:13,fontWeight:800,color:G.txt}}>{title}</div>
-              </div>
-              <div style={{display:"flex",alignItems:"center",justifyContent:"space-around",padding:"10px 0"}}>
-                <div style={{textAlign:"center"}}>
-                  <div style={{fontSize:36,fontWeight:900,color}}>{fmtD(ratio)}%</div>
-                  <div style={{fontSize:10,color:G.txtF}}>{ar?"من الإيراد":"of Revenue"}</div>
-                </div>
-                <div>
-                  <div style={{fontSize:11,color:G.txtD,marginBottom:4}}>{ar?"المبلغ:":"Amount:"}</div>
-                  <div style={{fontSize:18,fontWeight:800,color:G.gold}}>{fmt(total*1000)}</div>
-                  <div style={{fontSize:10,color:G.txtF}}>{UN}</div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 
-  // ── BUDGET ──
-  const Bud = () => (
+  // ── BUDGET ───────────────────────────────────────────────
+  const Bud=()=>(
     <div>
-      <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"repeat(3,1fr)",gap:12,marginBottom:14}}>
-        {[
-          [ar?"الإيراد vs الخطة":"Revenue vs Plan","+4.0%",G.pos,ar?"إيجابي ▲":"Favorable ▲"],
-          [ar?"COGS vs الخطة":"COGS vs Plan",      "+4.3%",G.neg,ar?"سلبي ▼":"Unfavorable ▼"],
-          [ar?"الربح vs الخطة":"Profit vs Plan",   "+1.7%",G.pos,ar?"إيجابي ▲":"Favorable ▲"],
-        ].map(([l,v,c,n],i) => (
-          <div key={i} style={{background:"white",border:`1px solid ${G.bdr}`,borderTop:`3px solid ${c}`,borderRadius:14,padding:"13px 15px",boxShadow:G.shd}}>
-            <div style={{fontSize:10,color:G.txtF,fontWeight:600,marginBottom:5}}>{l}</div>
-            <div style={{fontSize:mob?20:26,fontWeight:800,color:c}}>{v}</div>
-            <div style={{fontSize:10,color:G.txtD,marginTop:3}}>{n}</div>
-          </div>
-        ))}
-      </div>
-      <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd}}>
+      <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px"}}>
         <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>⊞ {ar?"المخطط مقابل الفعلي":"Budget vs Actual"} — {UN}</div>
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse",minWidth:460}}>
-            <thead>
-              <tr>
-                {[ar?"البند":"Item",ar?"المخطط":"Budget",ar?"الفعلي":"Actual",ar?"الانحراف":"Variance",ar?"الحالة":"Status"].map(h => (
-                  <th key={h} style={{textAlign:ar?"right":"left",padding:"8px 12px",fontSize:11,color:G.txtF,borderBottom:`2px solid ${G.bdr}`,fontWeight:700}}>{h}</th>
-                ))}
-              </tr>
-            </thead>
+            <thead><tr>
+              {[ar?"البند":"Item",ar?"المخطط":"Budget",ar?"الفعلي":"Actual",ar?"الانحراف":"Variance",ar?"الحالة":"Status"].map(h=>(
+                <th key={h} style={{textAlign:ar?"right":"left",padding:"8px 12px",fontSize:11,color:G.txtF,borderBottom:`2px solid ${G.bdr}`,fontWeight:700}}>{h}</th>
+              ))}
+            </tr></thead>
             <tbody>
-              {BUDGET.map((row,i) => {
-                const v=row.a-row.b, vp=(v/row.b)*100, fav=row.pos?v>=0:v<=0;
-                return (
-                  <tr key={i} style={{background:i%2===0?G.sur:"white"}}>
-                    <td style={{padding:"9px 12px",fontSize:12,color:G.txt,fontWeight:700,borderBottom:`1px solid ${G.bdrS}`}}>{ar?row.ar:row.en}</td>
-                    <td style={{padding:"9px 12px",fontSize:12,color:G.txtD,borderBottom:`1px solid ${G.bdrS}`}}>{fmt(row.b)}</td>
-                    <td style={{padding:"9px 12px",fontSize:12,color:G.gold,fontWeight:700,borderBottom:`1px solid ${G.bdrS}`}}>{fmt(row.a)}</td>
-                    <td style={{padding:"9px 12px",fontSize:12,color:fav?G.pos:G.neg,fontWeight:700,borderBottom:`1px solid ${G.bdrS}`}}>{v>=0?"+":""}{fmt(v)}</td>
-                    <td style={{padding:"9px 12px",borderBottom:`1px solid ${G.bdrS}`}}>
-                      <Bdg t={fav?(ar?"إيجابي ✓":"Fav ✓"):(ar?"سلبي ✗":"Unfav ✗")} c={fav?G.pos:G.neg}/>
-                    </td>
-                  </tr>
-                );
+              {BUDGET.map((row,i)=>{
+                const v=row.a-row.b,fav=row.pos?v>=0:v<=0;
+                return <tr key={i} style={{background:i%2===0?G.sur:"white"}}>
+                  <td style={{padding:"9px 12px",fontSize:12,fontWeight:700,color:G.txt,borderBottom:`1px solid ${G.bdrS}`}}>{ar?row.ar:row.en}</td>
+                  <td style={{padding:"9px 12px",fontSize:12,color:G.txtD,borderBottom:`1px solid ${G.bdrS}`}}>{fmt(row.b)}</td>
+                  <td style={{padding:"9px 12px",fontSize:12,color:G.gold,fontWeight:700,borderBottom:`1px solid ${G.bdrS}`}}>{fmt(row.a)}</td>
+                  <td style={{padding:"9px 12px",fontSize:12,color:fav?G.pos:G.neg,fontWeight:700,borderBottom:`1px solid ${G.bdrS}`}}>{v>=0?"+":""}{fmt(v)}</td>
+                  <td style={{padding:"9px 12px",borderBottom:`1px solid ${G.bdrS}`}}><Bdg t={fav?(ar?"إيجابي ✓":"Fav"):( ar?"سلبي ✗":"Unfav")} c={fav?G.pos:G.neg} sm/></td>
+                </tr>;
               })}
             </tbody>
           </table>
@@ -504,517 +514,234 @@ function App() {
     </div>
   );
 
-  // ── LIQUIDITY ──
-  const Liq = () => (
+  // ── LIQUIDITY ────────────────────────────────────────────
+  const Liq=()=>(
     <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"repeat(3,1fr)",gap:14}}>
-      <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd}}>
-        <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>◈ {ar?"تقادم الذمم المدينة":"AR Aging"}</div>
-        {AGING.map((b,i) => (
+      <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px"}}>
+        <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>◈ {ar?"تقادم الذمم":"AR Aging"}</div>
+        {AR_AGING.map((b,i)=>(
           <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${G.bdrS}`}}>
             <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <span style={{width:8,height:8,borderRadius:2,background:b.c,flexShrink:0}}/>
+              <span style={{width:8,height:8,borderRadius:2,background:b.c}}/>
               <span style={{fontSize:11,color:G.txtD}}>{ar?b.ar:b.en}</span>
             </div>
             <span style={{fontSize:11,color:G.txt,fontWeight:700}}>{fmt(b.v)}</span>
           </div>
         ))}
-        <div style={{marginTop:10,padding:"8px 12px",background:G.sur2,borderRadius:7}}>
-          <span style={{fontSize:11,fontWeight:700,color:G.txt}}>{ar?"الإجمالي:":"Total:"} </span>
-          <span style={{fontSize:13,fontWeight:800,color:G.gold}}>{fmt(k.tAR)} {UN}</span>
-        </div>
       </div>
-
-      <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd}}>
+      <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px"}}>
         <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>◎ {ar?"مؤشرات السيولة":"Liquidity Ratios"}</div>
-        {[
-          [ar?"نسبة التداول":"Current Ratio", k.cr,   1.5,"Current Ratio"],
-          [ar?"النسبة السريعة":"Quick Ratio",  k.qr,   1.0,"Quick Ratio"],
-          [ar?"النسبة النقدية":"Cash Ratio",   k.cashR,0.5,"Cash Ratio"],
-        ].map(([l,v,t,ex],i) => {
-          const ok = v >= t;
-          return (
-            <div key={i} style={{padding:"9px 0",borderBottom:`1px solid ${G.bdrS}`}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-                <div>
-                  <div style={{fontSize:11,color:G.txt,fontWeight:600}}>{l}</div>
-                  <div style={{fontSize:9,color:G.txtF}}>{ex}</div>
-                </div>
-                <span style={{fontSize:15,fontWeight:800,color:ok?G.pos:G.wrn}}>{fmtD(v,2)}</span>
+        {[[ar?"نسبة التداول":"Current Ratio",k.cr,1.5],[ar?"النسبة السريعة":"Quick Ratio",k.qr,1.0],[ar?"DSO (يوم)":"DSO (days)",k.dso,35,true]].map(([l,v,t,lower],i)=>{
+          const ok=lower?v<=t:v>=t;
+          return <div key={i} style={{padding:"9px 0",borderBottom:`1px solid ${G.bdrS}`}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+              <div style={{fontSize:11,color:G.txt,fontWeight:600}}>{l}</div>
+              <div style={{display:"flex",alignItems:"center",gap:6}}>
+                <span style={{fontSize:14,fontWeight:800,color:ok?G.pos:G.wrn}}>{fmtD(v,lower?0:2)}</span>
+                <span>{ok?"✅":"⚠️"}</span>
               </div>
-              <Hbar v={v} mx={t*1.5} c={ok?G.pos:G.wrn}/>
             </div>
-          );
+            <Hbar v={Math.min(v,t*1.5)} mx={t*1.5} c={ok?G.pos:G.wrn}/>
+          </div>;
         })}
-        <div style={{padding:"9px 0"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <div>
-              <div style={{fontSize:11,color:G.txt,fontWeight:600}}>{ar?"رأس المال العامل":"Working Capital"}</div>
-              <div style={{fontSize:9,color:G.txtF}}>Working Capital</div>
-            </div>
-            <span style={{fontSize:15,fontWeight:800,color:k.wc>0?G.pos:G.neg}}>{fmt(k.wc)}</span>
-          </div>
-        </div>
       </div>
-
-      <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd}}>
-        <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>◈ {ar?"دورة رأس المال العامل":"Cash Conversion Cycle"}</div>
-        <div style={{textAlign:"center",padding:"10px 0 14px"}}>
-          <div style={{fontSize:9,color:G.txtF,marginBottom:4}}>CCC</div>
-          <div style={{fontSize:40,fontWeight:900,color:G.gold}}>{fmtD(k.ccc,0)}</div>
-          <div style={{fontSize:11,color:G.txtD}}>{ar?"يوم":"days"}</div>
+      <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px"}}>
+        <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>◆ {ar?"رأس المال العامل":"Working Capital"}</div>
+        <div style={{textAlign:"center",padding:"16px 0"}}>
+          <div style={{fontSize:36,fontWeight:900,color:k.wc>0?G.pos:G.neg}}>{fmt(k.wc*1000)}</div>
+          <div style={{fontSize:11,color:G.txtF,marginTop:4}}>{SY}</div>
         </div>
-        {[[ar?"DSO - التحصيل":"DSO - Collection",k.dso,G.wrn,"+"],[ar?"DIO - المخزون":"DIO - Inventory",k.dio,G.inf,"+"],[ar?"DPO - الموردين":"DPO - Payables",k.dpo,G.pos,"−"]].map(([l,v,c,s],i) => (
-          <div key={i} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:`1px solid ${G.bdrS}`}}>
-            <div style={{fontSize:11,color:G.txtD}}>
-              <span style={{color:c,fontWeight:800,marginLeft:4,marginRight:4}}>{s}</span>{l}
-            </div>
-            <span style={{fontSize:12,fontWeight:700,color:G.txt}}>{fmtD(v,0)} {ar?"يوم":"d"}</span>
+        <div style={{padding:"10px 12px",background:G.sur,borderRadius:8}}>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:6}}>
+            <span style={{color:G.txtD}}>{ar?"الأصول المتداولة":"Current Assets"}</span>
+            <span style={{color:G.pos,fontWeight:700}}>{fmt((k.cash+k.ar+480)*1000)}</span>
           </div>
-        ))}
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
+            <span style={{color:G.txtD}}>{ar?"الالتزامات المتداولة":"Current Liabilities"}</span>
+            <span style={{color:G.neg,fontWeight:700}}>{fmt((k.ap+280)*1000)}</span>
+          </div>
+        </div>
       </div>
     </div>
   );
 
-  // ── REPORTS ──
-  const Rep = () => (
-    <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd}}>
+  // ── REPORTS ──────────────────────────────────────────────
+  const Rep=()=>(
+    <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px"}}>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
-        <div style={{fontSize:13,fontWeight:700,color:G.goldD}}>◎ {ar?"تقرير الأداء الشامل":"KPI Performance Report"}</div>
+        <div style={{fontSize:13,fontWeight:700,color:G.goldD}}>✦ {ar?"تقرير الأداء الشامل":"KPI Performance Report"}</div>
         <div style={{display:"flex",gap:8}}>
-          <button onClick={() => window.print()} style={{padding:"7px 12px",borderRadius:7,border:`1px solid ${G.bdr}`,background:G.sur,color:G.txtD,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🖨 {ar?"طباعة":"Print"}</button>
+          <button onClick={()=>window.print()} style={{padding:"7px 12px",borderRadius:7,border:`1px solid ${G.bdr}`,background:G.sur,color:G.txtD,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🖨 {ar?"طباعة":"Print"}</button>
           <button onClick={doExcel} style={{padding:"7px 12px",borderRadius:7,border:`1px solid ${G.pos}50`,background:"#F0FFF0",color:G.pos,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>📊 Excel</button>
-          <button onClick={() => window.print()} style={{padding:"7px 12px",borderRadius:7,border:`1px solid ${G.gold}`,background:G.goldL,color:G.goldD,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>📄 PDF</button>
+          <button onClick={()=>window.print()} style={{padding:"7px 12px",borderRadius:7,border:`1px solid ${G.gold}`,background:G.goldL,color:G.goldD,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>📄 PDF</button>
         </div>
       </div>
       <div style={{overflowX:"auto"}}>
-        <table style={{width:"100%",borderCollapse:"collapse",minWidth:490}}>
-          <thead>
-            <tr>
-              {[ar?"المؤشر":"KPI",ar?"القيمة":"Value",ar?"النسبة":"Ratio",ar?"المعيار":"Bench",ar?"الحالة":"Status"].map(h => (
-                <th key={h} style={{textAlign:ar?"right":"left",padding:"8px 12px",fontSize:11,color:G.txtF,borderBottom:`2px solid ${G.bdr}`,fontWeight:700}}>{h}</th>
-              ))}
-            </tr>
-          </thead>
+        <table style={{width:"100%",borderCollapse:"collapse",minWidth:500}}>
+          <thead><tr>
+            {[ar?"المؤشر":"KPI",ar?"القيمة":"Value",ar?"المعيار":"Bench",ar?"الحالة":"Status"].map(h=>(
+              <th key={h} style={{textAlign:ar?"right":"left",padding:"8px 12px",fontSize:11,color:G.txtF,borderBottom:`2px solid ${G.bdr}`,fontWeight:700}}>{h}</th>
+            ))}
+          </tr></thead>
           <tbody>
             {[
-              ["Gross Margin",   `${fmt(k.gp*1000)} ${SY}`,`${fmtD(k.gm)}%`, "≥40%", k.gm>=40],
-              ["EBITDA Margin",  `${fmt(k.eb*1000)} ${SY}`,`${fmtD(k.em)}%`, "≥15%", k.em>=15],
-              ["Net Margin",     `${fmt(k.nt*1000)} ${SY}`,`${fmtD(k.nm)}%`, "≥10%", k.nm>=10],
-              ["Current Ratio",  fmtD(k.cr,2),              "—",              "≥1.5", k.cr>=1.5],
-              ["Cash Runway",    `${fmtD(k.rw,1)} ${ar?"أشهر":"mo"}`,"—",   "≥6",   k.rw>=6],
-              ["DSO",            `${fmtD(k.dso,0)} ${ar?"يوم":"days"}`,"—",  "≤30",  k.dso<=30],
-              ["OpEx Ratio",     `${fmt(k.ox*1000)} ${SY}`,`${fmtD(k.xr)}%`, "≤15%", k.xr<=15],
-              ["G&A Ratio",      `${fmt(k.ga*1000)} ${SY}`,`${fmtD(k.gr)}%`, "≤7%",  k.gr<=7],
-            ].map(([n,v,p,b,ok],i) => (
+              [ar?"Gross Margin":"Gross Margin",`${fmt(k.gp*1000)} ${SY}`,`${fmtD(k.gm)}%/≥40%`,k.gm>=40],
+              [ar?"EBITDA Margin":"EBITDA Margin",`${fmt(k.eb*1000)} ${SY}`,`${fmtD(k.em)}%/≥15%`,k.em>=15],
+              [ar?"Net Margin":"Net Margin",`${fmt(k.nt*1000)} ${SY}`,`${fmtD(k.nm)}%/≥10%`,k.nm>=10],
+              [ar?"Current Ratio":"Current Ratio",fmtD(k.cr,2),"≥1.5",k.cr>=1.5],
+              [ar?"Cash Runway":"Cash Runway",`${fmtD(k.rw,1)} ${ar?"أشهر":"mo"}`,"≥6",k.rw>=6],
+              [ar?"DSO":"DSO",`${fmtD(k.dso,0)} ${ar?"يوم":"days"}`,"≤30",k.dso<=30],
+            ].map(([n,v,b,ok],i)=>(
               <tr key={i} style={{background:i%2===0?G.sur:"white"}}>
-                <td style={{padding:"9px 12px",fontSize:12,color:G.txt,fontWeight:700,borderBottom:`1px solid ${G.bdrS}`}}>{n}</td>
+                <td style={{padding:"9px 12px",fontSize:12,fontWeight:700,color:G.txt,borderBottom:`1px solid ${G.bdrS}`}}>{n}</td>
                 <td style={{padding:"9px 12px",fontSize:12,color:G.gold,fontWeight:700,borderBottom:`1px solid ${G.bdrS}`}}>{v}</td>
-                <td style={{padding:"9px 12px",fontSize:12,color:G.txtD,borderBottom:`1px solid ${G.bdrS}`}}>{p}</td>
                 <td style={{padding:"9px 12px",fontSize:11,color:G.txtF,borderBottom:`1px solid ${G.bdrS}`}}>{b}</td>
-                <td style={{padding:"9px 12px",borderBottom:`1px solid ${G.bdrS}`}}>
-                  <Bdg t={ok?(ar?"✓ مطابق":"✓ OK"):(ar?"⚠ راجع":"⚠ Review")} c={ok?G.pos:G.wrn}/>
-                </td>
+                <td style={{padding:"9px 12px",borderBottom:`1px solid ${G.bdrS}`}}><Bdg t={ok?(ar?"✅ مطابق":"✅ OK"):(ar?"⚠️ راجع":"⚠️ Review")} c={ok?G.pos:G.wrn} sm/></td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      {realData&&<div style={{marginTop:14,padding:"10px 14px",background:G.goldL,borderRadius:8,fontSize:11,color:G.goldD,fontWeight:600}}>
+        📊 {ar?`البيانات من دفترة — ${realData.counts.inv} فاتورة | ${realData.counts.exp} مصروف | ${realData.months} شهر نشط`:`Data from Daftra — ${realData.counts.inv} invoices | ${realData.counts.exp} expenses | ${realData.months} active months`}
+      </div>}
     </div>
   );
 
-
-  // ── REVENUE ──
-  const Rev = () => {
-    const dArr = [
-      {ar:"مبيعات المنتجات", en:"Product Sales",  d:DIR.products,  c:G.inf},
-      {ar:"رسوم الخدمات",   en:"Service Fees",   d:DIR.services,  c:G.gold},
-      {ar:"العقود",          en:"Contracts",      d:DIR.contracts, c:G.pos},
-      {ar:"متنوعة",          en:"Retail & Other", d:DIR.retail,    c:G.wrn},
-    ];
-    const oArr = [
-      {ar:"إيرادات إيجار",    en:"Rental Income",    d:OTH.rental,     c:G.pur},
-      {ar:"فوائد بنكية",     en:"Bank Interest",    d:OTH.interest,   c:G.inf},
-      {ar:"أرباح استثمارات", en:"Investment Gains", d:OTH.investment, c:G.pos},
-      {ar:"متنوعة",           en:"Misc. Income",     d:OTH.misc,       c:G.wrn},
-    ];
-    const cDIR = pArr(totDIR, period);
-    const cOTH = pArr(totOTH, period);
-    const dTotal = cDIR.reduce((a,b)=>a+b,0);
-    const oTotal = cOTH.reduce((a,b)=>a+b,0);
-    const dPct = k.r > 0 ? (dTotal/k.r)*100 : 0;
-
-    const DonutChart = ({data,total,label}) => {
-      const r=52, circ=2*Math.PI*r, tot=data.reduce((s,x)=>s+pArr(x.d,period).reduce((a,b)=>a+b,0),0);
-      let off=0;
-      return (
-        <div style={{position:"relative",width:120,height:120,flexShrink:0}}>
-          <svg width={120} height={120} style={{transform:"rotate(-90deg)"}}>
-            {data.map((x,i)=>{
-              const amt=pArr(x.d,period).reduce((a,b)=>a+b,0);
-              const len=(amt/tot)*circ;
-              const el=<circle key={i} cx={60} cy={60} r={r} fill="none" stroke={x.c} strokeWidth={15} strokeDasharray={`${len} ${circ-len}`} strokeDashoffset={-off}/>;
-              off+=len; return el;
-            })}
-          </svg>
-          <div style={{position:"absolute",inset:0,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"}}>
-            <div style={{fontSize:9,color:G.txtF,textAlign:"center"}}>{label}</div>
-            <div style={{fontSize:15,fontWeight:800,color:G.txt}}>{fmt(total)}</div>
-            <div style={{fontSize:8,color:G.txtD}}>{UN}</div>
-          </div>
-        </div>
-      );
-    };
-
-    return (
-      <div>
-        {/* Summary KPIs */}
-        <div style={{display:"grid",gridTemplateColumns:mob?"1fr 1fr":"repeat(4,1fr)",gap:12,marginBottom:14}}>
-          {[
-            [ar?"إجمالي الإيرادات":"Total Revenue",   `${fmt(k.r*1000)} ${SY}`, `${period}`, G.inf],
-            [ar?"الإيرادات التشغيلية":"Direct Revenue", `${fmt(dTotal*1000)} ${SY}`, `${fmtD(dPct)}% ${ar?"من الإجمالي":"of total"}`, G.pos],
-            [ar?"الإيرادات الأخرى":"Other Revenue",    `${fmt(oTotal*1000)} ${SY}`, `${fmtD(100-dPct)}% ${ar?"من الإجمالي":"of total"}`, G.pur],
-            [ar?"نمو الفترة":"Period Growth",           `${k.grow>=0?"+":""}${fmtD(k.grow)}%`, period, k.grow>=0?G.pos:G.neg],
-          ].map(([l,v,s,c],i) => (
-            <div key={i} style={{background:"white",border:`1px solid ${G.bdr}`,borderTop:`3px solid ${c}`,borderRadius:14,padding:"13px 15px",boxShadow:G.shd}}>
-              <div style={{fontSize:10,color:G.txtF,fontWeight:600,marginBottom:4}}>{l}</div>
-              <div style={{fontSize:mob?15:19,fontWeight:800,color:c}}>{v}</div>
-              <div style={{fontSize:10,color:G.txtF,marginTop:2}}>{s}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* View Toggle */}
-        <div style={{display:"flex",gap:8,marginBottom:14}}>
-          {[["breakdown",ar?"التفصيل":"Breakdown"],["trend",ar?"الاتجاه الزمني":"Trend"]].map(([v,l]) => (
-            <button key={v} onClick={() => setRevV(v)} style={{padding:"6px 14px",borderRadius:7,border:`1.5px solid ${revV===v?G.gold:G.bdr}`,background:revV===v?G.gold:"white",color:revV===v?"white":G.txtD,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-              {l}
-            </button>
-          ))}
-        </div>
-
-        {revV==="trend" ? (
-          <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd}}>
-            <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>▲ {ar?"اتجاه الإيرادات التشغيلية والأخرى":"Direct vs Other Revenue Trend"}</div>
-            <Chart series={[{d:cDIR,c:G.inf},{d:cOTH,c:G.pur}]} h={mob?130:170} mons={cMs}/>
-            <div style={{display:"flex",gap:14,marginTop:6,justifyContent:"center"}}>
-              {[[G.inf,ar?"تشغيلية":"Direct"],[G.pur,ar?"أخرى":"Other"]].map(([c,l]) => (
-                <div key={l} style={{display:"flex",alignItems:"center",gap:5}}>
-                  <div style={{width:14,height:2,background:c}}/>
-                  <span style={{fontSize:10,color:G.txtD}}>{l}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"1fr 1fr",gap:14}}>
-            {/* Direct Revenue */}
-            <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd}}>
-              <div style={{paddingBottom:10,marginBottom:14,borderBottom:`2px solid ${G.inf}`}}>
-                <div style={{fontSize:13,fontWeight:800,color:G.txt}}>{ar?"الإيرادات التشغيلية المباشرة":"Direct Operating Revenue"}</div>
-                <div style={{fontSize:10,color:G.txtF,marginTop:2}}>{ar?"إيرادات النشاط الأساسي للشركة":"Core business revenues"}</div>
-              </div>
-              <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
-                <DonutChart data={dArr} total={fmt(dTotal)} label={ar?"مباشرة":"Direct"}/>
-                <div style={{flex:1}}>
-                  {dArr.map((cat,i) => {
-                    const amt = pArr(cat.d,period).reduce((a,b)=>a+b,0);
-                    const pct = dTotal>0?(amt/dTotal)*100:0;
-                    return (
-                      <div key={i} style={{padding:"5px 0",borderBottom:`1px solid ${G.bdrS}`}}>
-                        <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                          <div style={{display:"flex",alignItems:"center",gap:5}}>
-                            <span style={{width:7,height:7,borderRadius:2,background:cat.c,flexShrink:0}}/>
-                            <span style={{fontSize:11,color:G.txt,fontWeight:600}}>{ar?cat.ar:cat.en}</span>
-                          </div>
-                          <span style={{fontSize:11,color:G.txt,fontWeight:700}}>{fmt(amt)}</span>
-                        </div>
-                        <div style={{display:"flex",alignItems:"center",gap:5}}>
-                          <Hbar v={pct} mx={100} c={cat.c} h={4}/>
-                          <span style={{fontSize:9,color:G.txtF,minWidth:28}}>{fmtD(pct)}%</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Other Revenue */}
-            <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd}}>
-              <div style={{paddingBottom:10,marginBottom:14,borderBottom:`2px solid ${G.pur}`}}>
-                <div style={{fontSize:13,fontWeight:800,color:G.txt}}>{ar?"الإيرادات الأخرى":"Other Revenue"}</div>
-                <div style={{fontSize:10,color:G.txtF,marginTop:2}}>{ar?"إيرادات غير تشغيلية وثانوية":"Non-operating revenues"}</div>
-              </div>
-              <div style={{display:"flex",gap:14,alignItems:"flex-start"}}>
-                <DonutChart data={oArr} total={fmt(oTotal)} label={ar?"أخرى":"Other"}/>
-                <div style={{flex:1}}>
-                  {oArr.map((cat,i) => {
-                    const amt = pArr(cat.d,period).reduce((a,b)=>a+b,0);
-                    const pct = oTotal>0?(amt/oTotal)*100:0;
-                    return (
-                      <div key={i} style={{padding:"5px 0",borderBottom:`1px solid ${G.bdrS}`}}>
-                        <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                          <div style={{display:"flex",alignItems:"center",gap:5}}>
-                            <span style={{width:7,height:7,borderRadius:2,background:cat.c,flexShrink:0}}/>
-                            <span style={{fontSize:11,color:G.txt,fontWeight:600}}>{ar?cat.ar:cat.en}</span>
-                          </div>
-                          <span style={{fontSize:11,color:G.txt,fontWeight:700}}>{fmt(amt)}</span>
-                        </div>
-                        <div style={{display:"flex",alignItems:"center",gap:5}}>
-                          <Hbar v={pct} mx={100} c={cat.c} h={4}/>
-                          <span style={{fontSize:9,color:G.txtF,minWidth:28}}>{fmtD(pct)}%</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Insight Card */}
-            <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd,gridColumn:mob?"1":"1/3"}}>
-              <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>◈ {ar?"تحليل مزيج الإيرادات":"Revenue Mix Analysis"}</div>
-              <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"repeat(3,1fr)",gap:12}}>
-                {[
-                  {l:ar?"تركز الإيرادات التشغيلية":"Direct Rev. Concentration", v:`${fmtD(dPct)}%`, n:dPct>=90?(ar?"تركز صحي ✓":"Healthy ✓"):(ar?"راجع التنوع":"Review mix"), c:dPct>=90?G.pos:G.wrn},
-                  {l:ar?"متوسط الإيراد الشهري":"Avg. Monthly Revenue",          v:fmt(k.r/cRev.length*1000), n:SY, c:G.gold},
-                  {l:ar?"حصة الإيرادات الأخرى":"Other Revenue Share",           v:`${fmtD(100-dPct)}%`, n:ar?"من إجمالي الإيراد":"of total revenue", c:G.pur},
-                ].map((x,i) => (
-                  <div key={i} style={{background:G.sur,borderRadius:10,padding:"12px 14px",borderRight:ar?`3px solid ${x.c}`:"none",borderLeft:!ar?`3px solid ${x.c}`:"none"}}>
-                    <div style={{fontSize:10,color:G.txtF,marginBottom:4}}>{x.l}</div>
-                    <div style={{fontSize:20,fontWeight:800,color:x.c}}>{x.v}</div>
-                    <div style={{fontSize:10,color:G.txtD,marginTop:2}}>{x.n}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  // ── MAIN RENDER ──
+  // ── MAIN ─────────────────────────────────────────────────
   return (
     <>
       <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet"/>
-      <style>{`* { box-sizing: border-box; } @media print { .np { display:none!important; } }`}</style>
-
+      <style>{`* { box-sizing:border-box; } @media print { .np { display:none!important; } }`}</style>
       <div style={{minHeight:"100vh",background:G.bg,color:G.txt,fontFamily:"'Cairo',sans-serif",direction:dir}}>
-      {authLoad && (
-        <div style={{position:"fixed",inset:0,background:"rgba(30,20,8,0.7)",zIndex:9999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
-          <div style={{width:48,height:48,border:`4px solid rgba(200,168,75,0.3)`,borderTop:`4px solid ${G.gold}`,borderRadius:"50%",animation:"spin 1s linear infinite"}}/>
-          <div style={{fontSize:16,fontWeight:700,color:"white"}}>{ar?"جاري الاتصال بدفترة...":"Connecting to Daftra..."}</div>
-          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-        </div>
-      )}
-
-        {/* SIDEBAR */}
-        {!mob && (
-          <div style={{width:SW,position:"fixed",top:0,[ar?"right":"left"]:0,bottom:0,background:"white",zIndex:20,borderLeft:ar?`1px solid ${G.bdr}`:"none",borderRight:!ar?`1px solid ${G.bdr}`:"none",display:"flex",flexDirection:"column"}}>
-            <div style={{padding:tab?"10px 6px":"12px 14px",borderBottom:`1px solid ${G.bdrS}`}}>
-              <svg width={tab?32:26} height={tab?32:26} viewBox="0 0 48 48">
-                <rect width="48" height="48" rx="11" fill={G.gold}/>
-                <path d="M 33.19 14.81 A 13 13 0 1 0 33.19 33.19" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round"/>
-                <circle cx="33.19" cy="14.81" r="3" fill="white"/>
-                <circle cx="33.19" cy="33.19" r="3" fill="white"/>
-                <line x1="36" y1="14.81" x2="43" y2="14.81" stroke="white" strokeWidth="1.5" strokeDasharray="2 2" opacity=".7"/>
-                <line x1="36" y1="33.19" x2="43" y2="33.19" stroke="white" strokeWidth="1.5" strokeDasharray="2 2" opacity=".7"/>
-                <circle cx="44.5" cy="24" r="2" fill="white" opacity=".85"/>
-              </svg>
-              {!tab && <div style={{marginTop:6}}><div style={{fontSize:14,fontWeight:900,color:G.goldD,lineHeight:1,fontFamily:"Georgia,serif"}}>CLink<span style={{color:G.gold}}>·</span></div><div style={{fontSize:8,color:G.gold,letterSpacing:2,fontWeight:700}}>CFO DASHBOARD</div></div>}
-            </div>
-            <nav style={{flex:1,padding:tab?"8px 4px":"10px 8px"}}>
-              {NAV.map(n => (
-                <div key={n.id} onClick={() => setPage(n.id)} style={{display:"flex",alignItems:"center",gap:tab?0:8,justifyContent:tab?"center":"flex-start",padding:tab?"10px":"8px 10px",borderRadius:8,marginBottom:2,cursor:"pointer",background:page===n.id?G.goldP:"transparent",border:`1px solid ${page===n.id?G.gold+"50":"transparent"}`,color:page===n.id?G.gold:G.txtF,fontWeight:page===n.id?700:400,fontSize:12}}>
-                  <span style={{fontSize:14}}>{n.icon}</span>
-                  {!tab && <span>{ar?n.ar:n.en}</span>}
-                </div>
-              ))}
-            </nav>
-            {!tab && <div style={{padding:"8px 12px",borderTop:`1px solid ${G.bdrS}`,fontSize:9,color:G.txtF}}>IFRS • {UN}</div>}
-          </div>
-        )}
-
-        {/* BOTTOM NAV */}
-        {mob && (
-          <div style={{position:"fixed",bottom:0,left:0,right:0,background:"white",borderTop:`1px solid ${G.bdr}`,display:"flex",zIndex:20}}>
-            {NAV.map(n => (
-              <div key={n.id} onClick={() => setPage(n.id)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"6px 2px",cursor:"pointer",color:page===n.id?G.gold:G.txtF,borderTop:`2px solid ${page===n.id?G.gold:"transparent"}`,background:page===n.id?G.goldP:"transparent"}}>
-                <span style={{fontSize:14,marginBottom:1}}>{n.icon}</span>
-                <span style={{fontSize:8,fontWeight:page===n.id?700:400}}>{(ar?n.ar:n.en).split(" ")[0]}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* MAIN */}
+        {!mob&&<Sidebar/>}
+        {mob&&<BottomNav/>}
         <main style={{[ar?"marginRight":"marginLeft"]:SW,padding:mob?"12px 12px 80px":"18px 22px",minHeight:"100vh"}}>
 
           {/* HEADER */}
-          <div style={{marginBottom:16}} className="np">
-            {/* Row 1: Title + Language */}
+          <div style={{marginBottom:14}} className="np">
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-              <h1 style={{fontSize:mob?15:19,fontWeight:800,color:G.txt,margin:0}}>{navLabel(page)}</h1>
+              <h1 style={{fontSize:mob?15:19,fontWeight:800,color:G.txt,margin:0}}>{NAV.find(n=>n.id===page)?.[ar?"ar":"en"]}</h1>
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
-              <button onClick={()=>setShowConn(v=>!v)} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",borderRadius:8,border:`1.5px solid ${conn.status==="connected"?G.pos:G.bdr}`,background:conn.status==="connected"?"#F0FFF0":"white",color:conn.status==="connected"?G.pos:G.txtF,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                <span>{conn.status==="connected"?"🟢":conn.status==="connecting"?"🟡":"🔴"}</span>
-                {conn.status==="connected"?(ar?"✅ متصل بدفترة":"✅ Connected"):conn.status==="connecting"?(ar?"جاري...":"Connecting..."):(ar?"🔌 اتصل بدفترة":"🔌 Connect Daftra")}
-              </button>
-              {conn.status==="connected" && (
-                <button onClick={()=>{DaftraAPI.clearToken();setConn({sub:"",key:"",status:"demo",token:""});setConnMsg("");}} style={{padding:"5px 10px",borderRadius:7,border:`1px solid ${G.neg}30`,background:"#FFF0EE",color:G.neg,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  {ar?"⛔ قطع الاتصال":"⛔ Disconnect"}
+                {conn.status==="connected"&&<button onClick={disconnect} style={{padding:"5px 10px",borderRadius:7,border:`1px solid ${G.neg}30`,background:"#FFF0EE",color:G.neg,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>⛔ {ar?"قطع":"Disconnect"}</button>}
+                <button onClick={()=>setShowConn(v=>!v)} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",borderRadius:8,border:`1.5px solid ${conn.status==="connected"?G.pos:G.bdr}`,background:conn.status==="connected"?"#F0FFF0":"white",color:conn.status==="connected"?G.pos:G.txtF,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  <span>{conn.status==="connected"?"🟢":conn.status==="connecting"?"🟡":"🔴"}</span>
+                  {conn.status==="connected"?(ar?"متصل بدفترة":"Connected"):conn.status==="connecting"?(ar?"جاري...":"Connecting..."):(ar?"🔌 اتصل":"🔌 Connect")}
                 </button>
-              )}
-              <div style={{display:"flex",overflow:"hidden",borderRadius:8,border:`1px solid ${G.bdr}`}}>
-                {["AR","EN"].map(l => (
-                  <button key={l} onClick={() => setLang(l)} style={{padding:"6px 14px",border:"none",background:lang===l?G.gold:"transparent",color:lang===l?"white":G.txtF,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
-                ))}
-              </div>
-            </div>
-            {showConn && (
-              <div style={{position:"fixed",inset:0,background:"rgba(30,20,8,0.5)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-                <div style={{background:"white",borderRadius:16,padding:28,width:"100%",maxWidth:440,boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
-                  <div style={{fontSize:17,fontWeight:800,color:G.goldD,marginBottom:4}}>🔗 {ar?"اتصال بدفترة":"Connect to Daftra"}</div>
-                  <div style={{fontSize:11,color:G.txtF,marginBottom:20}}>{ar?"أدخل بيانات حسابك لجلب بياناتك الحقيقية":"Enter your Daftra account credentials"}</div>
-                  <div style={{marginBottom:12}}>
-                    <div style={{fontSize:11,fontWeight:700,color:G.txtF,marginBottom:4}}>{ar?"النطاق الفرعي":"Subdomain"}</div>
-                    <div style={{display:"flex"}}>
-                      <input value={conn.sub} onChange={e=>setConn(c=>({...c,sub:e.target.value}))} placeholder={ar?"اسم-شركتك":"your-company"} style={{flex:1,padding:"9px 12px",border:`1.5px solid ${G.bdr}`,borderRadius:"8px 0 0 8px",fontSize:13,fontFamily:"inherit",outline:"none"}}/>
-                      <div style={{padding:"9px 10px",background:G.sur2,border:`1.5px solid ${G.bdr}`,borderRadius:"0 8px 8px 0",fontSize:11,color:G.txtF,whiteSpace:"nowrap"}}>.daftra.com</div>
-                    </div>
-                  </div>
-                  <div style={{marginBottom:16}}>
-                    <div style={{fontSize:11,fontWeight:700,color:G.txtF,marginBottom:4}}>API Key</div>
-                    <input type="password" value={conn.key} onChange={e=>setConn(c=>({...c,key:e.target.value}))} placeholder={ar?"مفتاح API من إعدادات دفترة":"API Key from Daftra settings"} style={{width:"100%",padding:"9px 12px",border:`1.5px solid ${G.bdr}`,borderRadius:8,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
-                  </div>
-                  {connMsg && <div style={{padding:"8px 12px",borderRadius:8,background:connMsg.includes("✅")?"#F0FFF0":"#FFF0EE",color:connMsg.includes("✅")?G.pos:G.neg,fontSize:12,fontWeight:600,marginBottom:14}}>{connMsg}</div>}
-                  {/* OAuth — موصى به */}
-                  <button onClick={connectOAuth} style={{width:"100%",padding:"11px",borderRadius:9,border:"none",background:`linear-gradient(135deg,${G.gold},${G.goldD})`,color:"white",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-                    <span style={{fontSize:18}}>🔗</span>{ar?"تسجيل دخول بدفترة (موصى به)":"Login with Daftra (Recommended)"}
-                  </button>
-                  <div style={{textAlign:"center",fontSize:11,color:G.txtF,marginBottom:8}}>{ar?"— أو أدخل API Key يدوياً —":"— or enter API Key manually —"}</div>
-                  <div style={{display:"flex",gap:8}}>
-                    <button onClick={()=>{setShowConn(false);setConnMsg("");}} style={{flex:1,padding:"9px",borderRadius:8,border:`1px solid ${G.bdr}`,background:"transparent",color:G.txtF,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{ar?"إلغاء":"Cancel"}</button>
-                    <button onClick={connectDaftra} disabled={conn.status==="connecting"} style={{flex:1,padding:"9px",borderRadius:8,border:`1px solid ${G.bdr}`,background:"white",color:G.goldD,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                      {conn.status==="connecting"?(ar?"جاري...":"Connecting..."):(ar?"API Key":"API Key")}
-                    </button>
-                  </div>
-                  <div style={{marginTop:14,padding:"8px 12px",background:G.sur,borderRadius:7,fontSize:10,color:G.txtF,lineHeight:1.7}}>
-                    💡 {ar?"احصل على API Key من: دفترة → الإعدادات → إعدادات API":"Get API Key: Daftra → Settings → API Settings"}<br/>
-                    ⚠️ {ar?"عند الاتصال ستختفي البيانات التجريبية وتظهر بياناتك الحقيقية":"Demo data will be replaced with your real Daftra data"}
-                  </div>
+                <div style={{display:"flex",overflow:"hidden",borderRadius:8,border:`1px solid ${G.bdr}`}}>
+                  {["AR","EN"].map(l=><button key={l} onClick={()=>setLang(l)} style={{padding:"6px 14px",border:"none",background:lang===l?G.gold:"transparent",color:lang===l?"white":G.txtF,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>)}
                 </div>
               </div>
-            )}
             </div>
 
-            {/* Row 2: PERIOD + CURRENCY BAR */}
+            {/* Period + Currency */}
             <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:G.sur,border:`1px solid ${G.bdr}`,borderRadius:10,padding:"10px 14px",gap:8}}>
-
-              {/* PERIOD SELECTOR */}
               <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
                 <span style={{fontSize:11,fontWeight:700,color:G.txtF,whiteSpace:"nowrap"}}>{ar?"الفترة:":"Period:"}</span>
-                {[
-                  {code:"MTD",ar:"الشهر",en:"Month"},
-                  {code:"QTD",ar:"الربع",en:"Quarter"},
-                  {code:"YTD",ar:"السنة",en:"Year"},
-                ].map(p => (
-                  <button key={p.code} onClick={() => setPeriod(p.code)} style={{padding:mob?"5px 10px":"6px 14px",borderRadius:7,border:`1.5px solid ${period===p.code?G.gold:G.bdr}`,background:period===p.code?G.gold:"white",color:period===p.code?"white":G.txtD,fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>
-                    {p.code}
-                    {!mob && <span style={{fontSize:9,opacity:.8,marginLeft:3,marginRight:3}}>— {ar?p.ar:p.en}</span>}
+                {[{c:"MTD",ar:"الشهر",en:"Month"},{c:"QTD",ar:"الربع",en:"Quarter"},{c:"YTD",ar:"السنة",en:"Year"}].map(p=>(
+                  <button key={p.c} onClick={()=>setPeriod(p.c)} style={{padding:mob?"5px 10px":"6px 14px",borderRadius:7,border:`1.5px solid ${period===p.c?G.gold:G.bdr}`,background:period===p.c?G.gold:"white",color:period===p.c?"white":G.txtD,fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>
+                    {p.c}{!mob&&<span style={{fontSize:9,opacity:.8,marginLeft:3,marginRight:3}}>— {ar?p.ar:p.en}</span>}
                   </button>
                 ))}
               </div>
-
-              {/* CURRENCY PICKER */}
               <div style={{position:"relative",flexShrink:0}}>
-                <button onClick={() => setShowM(v => !v)} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,border:`2px solid ${G.gold}`,background:"white",color:G.goldD,fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",boxShadow:`0 2px 8px ${G.gold}40`}}>
+                <button onClick={()=>setShowM(v=>!v)} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,border:`2px solid ${G.gold}`,background:"white",color:G.goldD,fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",boxShadow:`0 2px 8px ${G.gold}40`}}>
                   <span style={{fontSize:20,lineHeight:1}}>{money.f}</span>
                   <span>{SY}</span>
                   <span style={{fontSize:9,color:G.txtF}}>{showM?"▲":"▼"}</span>
                 </button>
-                {showM && (
-                  <div style={{position:"absolute",top:"calc(100% + 8px)",[ar?"left":"right"]:0,background:"white",border:`1.5px solid ${G.bdr}`,borderRadius:12,boxShadow:"0 8px 32px rgba(0,0,0,0.18)",zIndex:999,width:230,overflow:"hidden"}}>
-                    <div style={{padding:"9px 14px",borderBottom:`1px solid ${G.bdrS}`,fontSize:10,color:G.txtF,fontWeight:700}}>{ar?"اختر العملة":"SELECT CURRENCY"}</div>
-                    {CURR.map(c => (
-                      <div key={c.code} onClick={() => { setMoney(c); setShowM(false); }} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",cursor:"pointer",background:money.code===c.code?G.goldP:"transparent",borderBottom:`1px solid ${G.bdrS}`}}>
-                        <span style={{fontSize:22}}>{c.f}</span>
-                        <div style={{flex:1}}>
-                          <div style={{fontSize:12,fontWeight:700,color:money.code===c.code?G.goldD:G.txt}}>{ar?c.n:c.nE}</div>
-                          <div style={{fontSize:10,color:G.txtF}}>{c.s} • {c.sE}</div>
-                        </div>
-                        {money.code===c.code && <span style={{color:G.gold,fontSize:16}}>✓</span>}
+                {showM&&(
+                  <div style={{position:"absolute",top:"calc(100% + 8px)",[ar?"left":"right"]:0,background:"white",border:`1.5px solid ${G.bdr}`,borderRadius:12,boxShadow:"0 8px 32px rgba(0,0,0,0.15)",zIndex:999,width:225,overflow:"hidden"}}>
+                    <div style={{padding:"8px 14px",borderBottom:`1px solid ${G.bdrS}`,fontSize:10,color:G.txtF,fontWeight:700}}>{ar?"اختر العملة":"SELECT CURRENCY"}</div>
+                    {CURR.map(c=>(
+                      <div key={c.code} onClick={()=>{setMoney(c);setShowM(false);}} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",cursor:"pointer",background:money.code===c.code?G.goldP:"transparent",borderBottom:`1px solid ${G.bdrS}`}}>
+                        <span style={{fontSize:20}}>{c.f}</span>
+                        <div style={{flex:1}}><div style={{fontSize:12,fontWeight:700,color:money.code===c.code?G.goldD:G.txt}}>{ar?c.n:c.nE}</div><div style={{fontSize:10,color:G.txtF}}>{c.s} • {c.sE}</div></div>
+                        {money.code===c.code&&<span style={{color:G.gold}}>✓</span>}
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-
             </div>
           </div>
 
-          {/* بنر حالة الاتصال */}
-          {conn.status === "connected" && (
-            <div style={{background:"#F0FFF0",border:`1px solid ${G.pos}40`,borderRadius:10,padding:"10px 16px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}} className="np">
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <span style={{fontSize:16}}>{dataLoading?"⏳":"🟢"}</span>
-                <div>
-                  <div style={{fontSize:12,fontWeight:700,color:G.pos}}>
-                    {dataLoading?(ar?"جاري جلب بياناتك من دفترة...":"Loading your data from Daftra..."):
-                     realData?(ar?`✅ بيانات حقيقية — ${realData.rawCounts?.invoices||0} فاتورة | ${realData.rawCounts?.expenses||0} مصروف | ${realData.monthCount} شهر`:`✅ Real data — ${realData.rawCounts?.invoices||0} invoices | ${realData.rawCounts?.expenses||0} expenses`):
-                     (ar?"متصل بدفترة — جاري البحث في بياناتك...":"Connected — Scanning your data...")}
-                  </div>
-                  <div style={{fontSize:10,color:G.txtF}}>
-                    {realData?(ar?"الأرقام من حسابك الحقيقي في دفترة":"Numbers from your real Daftra account"):
-                     (ar?"تأكد من وجود فواتير ومصاريف في دفترة":"Make sure you have invoices & expenses in Daftra")}
-                  </div>
+          {/* Connection Modal */}
+          {showConn&&(
+            <div style={{position:"fixed",inset:0,background:"rgba(30,20,8,0.5)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+              <div style={{background:"white",borderRadius:16,padding:28,width:"100%",maxWidth:440,boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
+                <div style={{fontSize:17,fontWeight:800,color:G.goldD,marginBottom:4}}>🔗 {ar?"اتصال بدفترة":"Connect to Daftra"}</div>
+                <div style={{fontSize:11,color:G.txtF,marginBottom:20}}>{ar?"اتصل لجلب بياناتك الحقيقية":"Connect to load your real financial data"}</div>
+                <button onClick={()=>{setShowConn(false);connectOAuth();}} style={{width:"100%",padding:"11px",borderRadius:9,border:"none",background:`linear-gradient(135deg,${G.gold},${G.goldD})`,color:"white",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                  <span style={{fontSize:18}}>🔗</span>{ar?"تسجيل دخول بدفترة (موصى به)":"Login with Daftra (Recommended)"}
+                </button>
+                <div style={{textAlign:"center",fontSize:11,color:G.txtF,marginBottom:10}}>{ar?"— أو API Key يدوي —":"— or manual API Key —"}</div>
+                <div style={{marginBottom:10}}>
+                  <input value={conn.sub} onChange={e=>setConn(c=>({...c,sub:e.target.value}))} placeholder={ar?"النطاق الفرعي.daftra.com":"subdomain.daftra.com"} style={{width:"100%",padding:"8px 12px",border:`1.5px solid ${G.bdr}`,borderRadius:7,fontSize:12,fontFamily:"inherit",marginBottom:8,boxSizing:"border-box"}}/>
+                  <input type="password" value={conn.key} onChange={e=>setConn(c=>({...c,key:e.target.value}))} placeholder="API Key" style={{width:"100%",padding:"8px 12px",border:`1.5px solid ${G.bdr}`,borderRadius:7,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>
+                </div>
+                {connMsg&&<div style={{padding:"7px 10px",borderRadius:7,background:connMsg.includes("✅")?"#F0FFF0":"#FFF0EE",color:connMsg.includes("✅")?G.pos:G.neg,fontSize:11,fontWeight:600,marginBottom:10}}>{connMsg}</div>}
+                <div style={{display:"flex",gap:8}}>
+                  <button onClick={()=>{setShowConn(false);setConnMsg("");}} style={{flex:1,padding:"9px",borderRadius:8,border:`1px solid ${G.bdr}`,background:"transparent",color:G.txtF,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{ar?"إلغاء":"Cancel"}</button>
+                  <button onClick={connectKey} style={{flex:1,padding:"9px",borderRadius:8,border:`1px solid ${G.bdr}`,background:"white",color:G.goldD,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>API Key</button>
                 </div>
               </div>
-              {!dataLoading && (
-                <button onClick={()=>fetchRealData(conn.token, conn.sub)} style={{padding:"5px 10px",borderRadius:7,border:`1px solid ${G.pos}`,background:"white",color:G.pos,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  🔄 {ar?"تحديث":"Refresh"}
-                </button>
-              )}
             </div>
           )}
-          {conn.status !== "connected" && (
+
+          {/* Status Banner */}
+          {conn.status==="connected"&&(
+            <div style={{background:"#F0FFF0",border:`1px solid ${G.pos}40`,borderRadius:10,padding:"10px 16px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}} className="np">
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:16}}>{loading?"⏳":"🟢"}</span>
+                <div>
+                  <div style={{fontSize:12,fontWeight:700,color:G.pos}}>
+                    {loading?(ar?"جاري جلب بياناتك من دفترة...":"Loading your data from Daftra..."):
+                     realData?(ar?`✅ بيانات حقيقية — ${realData.counts.inv} فاتورة | ${realData.counts.exp} مصروف`:`✅ Real data — ${realData.counts.inv} invoices | ${realData.counts.exp} expenses`):
+                     connMsg||(ar?"متصل — لا توجد بيانات بعد":"Connected — No data yet")}
+                  </div>
+                  {realData&&<div style={{fontSize:10,color:G.txtF}}>{ar?"الأرقام من حسابك الحقيقي في دفترة":"Numbers from your real Daftra account"}</div>}
+                </div>
+              </div>
+              {!loading&&conn.token&&<button onClick={()=>doFetch(conn.token,conn.sub)} style={{padding:"5px 10px",borderRadius:7,border:`1px solid ${G.pos}`,background:"white",color:G.pos,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🔄 {ar?"تحديث":"Refresh"}</button>}
+            </div>
+          )}
+          {conn.status!=="connected"&&(
             <div style={{background:G.goldL,border:`1px solid ${G.gold}40`,borderRadius:10,padding:"10px 16px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}} className="np">
               <div style={{display:"flex",alignItems:"center",gap:8}}>
                 <span style={{fontSize:16}}>🟡</span>
                 <div>
                   <div style={{fontSize:12,fontWeight:700,color:G.goldD}}>{ar?"وضع التجربة — بيانات افتراضية":"Demo Mode — Sample data"}</div>
-                  <div style={{fontSize:10,color:G.txtF}}>{ar?"اضغط اتصل بدفترة لربط بياناتك الحقيقية":"Click Connect to load your real Daftra data"}</div>
+                  <div style={{fontSize:10,color:G.txtF}}>{ar?"اضغط اتصل بدفترة لجلب بياناتك الحقيقية":"Click Connect to load your real data"}</div>
                 </div>
               </div>
-              <button onClick={()=>setShowConn(true)} style={{padding:"5px 12px",borderRadius:7,border:"none",background:G.gold,color:"white",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                {ar?"🔌 اتصل الآن":"🔌 Connect Now"}
-              </button>
+              <button onClick={()=>setShowConn(true)} style={{padding:"6px 14px",borderRadius:8,border:"none",background:G.gold,color:"white",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🔌 {ar?"اتصل الآن":"Connect Now"}</button>
             </div>
           )}
 
-          {/* PAGE CONTENT */}
-          {page==="dash" && <Dash/>}
-          {page==="rev"  && <Rev/>}
-          {page==="exp"  && <Exp/>}
-          {page==="bud"  && <Bud/>}
-          {page==="liq"  && <Liq/>}
-          {page==="rep"  && <Rep/>}
+          {/* Pages */}
+          {page==="dash"&&<Dash/>}
+          {page==="exp" &&<Exp/>}
+          {page==="bud" &&<Bud/>}
+          {page==="liq" &&<Liq/>}
+          {page==="rep" &&<Rep/>}
+          {page==="rev" &&<Dash/>}
 
-          {/* FOOTER */}
-          {!mob && (
+          {!mob&&(
             <div className="np" style={{marginTop:18,paddingTop:10,borderTop:`1px solid ${G.bdrS}`,display:"flex",justifyContent:"space-between",fontSize:10,color:G.txtF}}>
               <span>IFRS • {UN} • FY 2025/2026</span>
-              <span style={{color:G.gold,fontWeight:700}}>CLink· CFO v5.0 | InvestorProHub</span>
+              <span style={{color:G.gold,fontWeight:700}}>CLink· CFO v6.0 | InvestorProHub</span>
             </div>
           )}
-
         </main>
       </div>
     </>
   );
 }
-ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
-</script>
+
+    ReactDOM.createRoot(document.getElementById("root")).render(
+      React.createElement(App)
+    );
+  </script>
 </body>
 </html>
