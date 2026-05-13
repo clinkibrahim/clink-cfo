@@ -773,6 +773,7 @@ function App() {
                 <line x1="36" y1="33.19" x2="43" y2="33.19" stroke="white" strokeWidth="1.5" strokeDasharray="2 2" opacity=".7"/>
                 <circle cx="44.5" cy="24" r="2" fill="white" opacity=".85"/>
               </svg>
+              {!tab && <div style={{marginTop:6}}><div style={{fontSize:14,fontWeight:900,color:G.goldD,lineHeight:1,fontFamily:"Georgia,serif"}}>CLink<span style={{color:G.gold}}>·</span></div><div style={{fontSize:8,color:G.gold,letterSpacing:2,fontWeight:700}}>CFO DASHBOARD</div></div>}
             </div>
             <nav style={{flex:1,padding:tab?"8px 4px":"10px 8px"}}>
               {NAV.map(n => (
@@ -845,8 +846,9 @@ function App() {
                       {conn.status==="connecting"?(ar?"جاري...":"Connecting..."):(ar?"API Key":"API Key")}
                     </button>
                   </div>
-                  <div style={{marginTop:14,padding:"8px 12px",background:G.sur,borderRadius:7,fontSize:10,color:G.txtF}}>
-                    💡 {ar?"احصل على API Key من: دفترة → الإعدادات → إعدادات API":"Get API Key: Daftra → Settings → API Settings"}
+                  <div style={{marginTop:14,padding:"8px 12px",background:G.sur,borderRadius:7,fontSize:10,color:G.txtF,lineHeight:1.7}}>
+                    💡 {ar?"احصل على API Key من: دفترة → الإعدادات → إعدادات API":"Get API Key: Daftra → Settings → API Settings"}<br/>
+                    ⚠️ {ar?"عند الاتصال ستختفي البيانات التجريبية وتظهر بياناتك الحقيقية":"Demo data will be replaced with your real Daftra data"}
                   </div>
                 </div>
               </div>
