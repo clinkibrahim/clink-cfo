@@ -810,8 +810,13 @@ function App() {
               <div style={{display:"flex",gap:8,alignItems:"center"}}>
               <button onClick={()=>setShowConn(v=>!v)} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",borderRadius:8,border:`1.5px solid ${conn.status==="connected"?G.pos:G.bdr}`,background:conn.status==="connected"?"#F0FFF0":"white",color:conn.status==="connected"?G.pos:G.txtF,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
                 <span>{conn.status==="connected"?"🟢":conn.status==="connecting"?"🟡":"🔴"}</span>
-                {conn.status==="connected"?(ar?"متصل":"Connected"):conn.status==="connecting"?(ar?"جاري...":"Connecting..."):(ar?"اتصل بدفترة":"Connect Daftra")}
+                {conn.status==="connected"?(ar?"✅ متصل بدفترة":"✅ Connected"):conn.status==="connecting"?(ar?"جاري...":"Connecting..."):(ar?"🔌 اتصل بدفترة":"🔌 Connect Daftra")}
               </button>
+              {conn.status==="connected" && (
+                <button onClick={()=>{DaftraAPI.clearToken();setConn({sub:"",key:"",status:"demo",token:""});setConnMsg("");}} style={{padding:"5px 10px",borderRadius:7,border:`1px solid ${G.neg}30`,background:"#FFF0EE",color:G.neg,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  {ar?"⛔ قطع الاتصال":"⛔ Disconnect"}
+                </button>
+              )}
               <div style={{display:"flex",overflow:"hidden",borderRadius:8,border:`1px solid ${G.bdr}`}}>
                 {["AR","EN"].map(l => (
                   <button key={l} onClick={() => setLang(l)} style={{padding:"6px 14px",border:"none",background:lang===l?G.gold:"transparent",color:lang===l?"white":G.txtF,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
@@ -899,6 +904,33 @@ function App() {
 
             </div>
           </div>
+
+          {/* بنر حالة الاتصال */}
+          {conn.status === "connected" && (
+            <div style={{background:"#F0FFF0",border:`1px solid ${G.pos}40`,borderRadius:10,padding:"10px 16px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}} className="np">
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:16}}>🟢</span>
+                <div>
+                  <div style={{fontSize:12,fontWeight:700,color:G.pos}}>{ar?"متصل بدفترة":"Connected to Daftra"}</div>
+                  <div style={{fontSize:10,color:G.txtF}}>{ar?"ربط البيانات الحقيقية قيد التطوير — الأرقام الحالية للعرض فقط":"Real data sync in development — current numbers are demo"}</div>
+                </div>
+              </div>
+            </div>
+          )}
+          {conn.status !== "connected" && (
+            <div style={{background:G.goldL,border:`1px solid ${G.gold}40`,borderRadius:10,padding:"10px 16px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}} className="np">
+              <div style={{display:"flex",alignItems:"center",gap:8}}>
+                <span style={{fontSize:16}}>🟡</span>
+                <div>
+                  <div style={{fontSize:12,fontWeight:700,color:G.goldD}}>{ar?"وضع التجربة — بيانات افتراضية":"Demo Mode — Sample data"}</div>
+                  <div style={{fontSize:10,color:G.txtF}}>{ar?"اضغط اتصل بدفترة لربط بياناتك الحقيقية":"Click Connect to load your real Daftra data"}</div>
+                </div>
+              </div>
+              <button onClick={()=>setShowConn(true)} style={{padding:"5px 12px",borderRadius:7,border:"none",background:G.gold,color:"white",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                {ar?"🔌 اتصل الآن":"🔌 Connect Now"}
+              </button>
+            </div>
+          )}
 
           {/* PAGE CONTENT */}
           {page==="dash" && <Dash/>}
