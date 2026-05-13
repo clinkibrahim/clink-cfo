@@ -114,14 +114,14 @@ const pSum = (arr,p) => pArr(arr,p).reduce((a,b)=>a+b,0);
 const fmt  = n => new Intl.NumberFormat("ar-EG").format(Math.round(n));
 const fmtD = (n,d=1) => new Intl.NumberFormat("ar-EG",{minimumFractionDigits:d,maximumFractionDigits:d}).format(n);
 
-const calcK = period => {
-  const r=pSum(FY.rev,period),cg=pSum(FY.cogs,period),ox=pSum(FY.opex,period),ga=pSum(FY.ga,period);
+const calcK = (period, D=FY) => {
+  const r=pSum(D.rev,period),cg=pSum(D.cogs,period),ox=pSum(D.opex,period),ga=pSum(D.ga,period);
   const gp=r-cg,op=gp-ox,eb=op-ga,tx=eb*.225,nt=eb-tx;
-  const cash=FY.cash[11],ar=FY.ar[11],ap=FY.ap[11],inv=480;
-  const bn=(pSum(FY.opex,"YTD")+pSum(FY.ga,"YTD"))/12;
+  const cash=D.cash[D.cash.length-1]||0,ar=D.ar[D.ar.length-1]||0,ap=D.ap[D.ap.length-1]||0,inv=480;
+  const bn=(pSum(D.opex,"YTD")+pSum(D.ga,"YTD"))/12;
   const rw=cash/(bn*.8),ca=cash+ar+inv,cl=ap+280;
   const dso=ar/(pSum(FY.rev,"YTD")/365),dio=inv/(pSum(FY.cogs,"YTD")/365),dpo=ap/(pSum(FY.cogs,"YTD")/365);
-  const idx=pIdx(period),prev=FY.rev.slice(Math.max(0,idx[0]-idx.length),idx[0]).reduce((a,b)=>a+b,0);
+  const idx=pIdx(period),prev=D.rev.slice(Math.max(0,idx[0]-idx.length),idx[0]).reduce((a,b)=>a+b,0);
   return {r,cg,ox,ga,gp,op,eb,nt,tx,cash,ar,ap,inv,bn,rw,
     gm:r>0?(gp/r)*100:0,nm:r>0?(nt/r)*100:0,em:r>0?(eb/r)*100:0,
     xr:r>0?(ox/r)*100:0,gr:r>0?(ga/r)*100:0,
@@ -144,16 +144,26 @@ function App() {
   const [showConn, setShowConn] = useState(false);
   const [connMsg,  setConnMsg]  = useState("");
   const [authLoad, setAuthLoad] = useState(false);
+  const [realData, setRealData]       = useState(null);
+  const [dataLoading, setDataLoading] = useState(false);
 
   const ar = lang === "AR";
   const SY = ar ? money.s : money.sE;
   const UN = ar ? `ألف ${money.s}` : `K ${money.sE}`;
-  const k  = useMemo(() => calcK(period), [period]);
-  const cR = useMemo(() => pArr(FY.rev, period), [period]);
-  const cO = useMemo(() => pArr(FY.opex,period), [period]);
-  const cG = useMemo(() => pArr(FY.ga,  period), [period]);
-  const cC = useMemo(() => pArr(FY.cogs,period), [period]);
-  const prf = cR.map((v,i) => v-cC[i]-cO[i]-cG[i]);
+
+  // استخدم البيانات الحقيقية إذا توفرت وإلا Demo
+  const DATA = useMemo(() => realData ? {
+    rev:realData.rev, cogs:realData.cogs, opex:realData.opex,
+    ga:realData.ga,   cash:realData.cash, ar:realData.ar,
+    ap:realData.ap,   emp:FY.emp,
+  } : FY, [realData]);
+
+  const k  = useMemo(() => calcK(period, DATA), [period, DATA]);
+  const cR = useMemo(() => pArr(DATA.rev, period), [period,DATA]);
+  const cO = useMemo(() => pArr(DATA.opex,period), [period,DATA]);
+  const cG = useMemo(() => pArr(DATA.ga,  period), [period,DATA]);
+  const cC = useMemo(() => pArr(DATA.cogs,period), [period,DATA]);
+  const prf = cRev.map((v,i) => v-cC[i]-cO[i]-cG[i]);
   const SW  = mob ? 0 : tab ? 56 : 210;
 
   const MAR = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
@@ -180,10 +190,33 @@ function App() {
     const savedSub   = DaftraAPI.getSub();
     if (savedToken && !auth) {
       setConn(c=>({...c, status:"connected", token:savedToken, sub:savedSub||""}));
+      // جلب البيانات الحقيقية عند استعادة الجلسة
+      setTimeout(() => fetchRealData(savedToken, savedSub||""), 500);
     }
   }, []);
 
   const connectOAuth = () => DaftraAPI.startOAuth();
+
+  // ── جلب البيانات الحقيقية من دفترة ──────────────────────
+  const fetchRealData = async (token, sub) => {
+    if (!token) return;
+    setDataLoading(true);
+    try {
+      const fin = await DaftraAPI.getFinancials(token, sub||"");
+      if (fin.invoices.length > 0 || fin.expenses.length > 0) {
+        const processed = processRealData(fin.invoices, fin.expenses, fin.incomes);
+        if (processed.hasData) {
+          setRealData(processed);
+          return processed;
+        }
+      }
+    } catch(e) {
+      console.warn("Could not fetch real data:", e.message);
+    } finally {
+      setDataLoading(false);
+    }
+    return null;
+  };
 
   const connectDaftra = async () => {
     if (!conn.sub || !conn.key) { setConnMsg(ar?"أدخل النطاق ومفتاح API":"Enter subdomain and API key"); return; }
@@ -296,7 +329,7 @@ function App() {
       {/* KPIs */}
       <div style={{display:"grid",gridTemplateColumns:mob?"1fr 1fr":"repeat(4,1fr)",gap:12,marginBottom:14}}>
         <KPI label={ar?"إجمالي الإيرادات":"Total Revenue"} val={`${fmt(k.r*1000)} ${SY}`}  sub={`${period} • ${k.grow>=0?"+":""}${fmtD(k.grow)}%`} trend={k.grow} spData={cR} c={G.inf}/>
-        <KPI label={ar?"إجمالي الربح":"Gross Profit"}      val={`${fmt(k.gp*1000)} ${SY}`} sub={`GM: ${fmtD(k.gm)}%`} trend={6.4} spData={cR.map((v,i)=>v-cC[i])} c={G.pos}/>
+        <KPI label={ar?"إجمالي الربح":"Gross Profit"}      val={`${fmt(k.gp*1000)} ${SY}`} sub={`GM: ${fmtD(k.gm)}%`} trend={6.4} spData={cRev.map((v,i)=>v-cC[i])} c={G.pos}/>
         <KPI label={ar?"صافي الربح":"Net Profit"}          val={`${fmt(k.nt*1000)} ${SY}`} sub={`NM: ${fmtD(k.nm)}%`} trend={5.2} spData={prf} c={G.gold}/>
         <KPI label="EBITDA"                                  val={`${fmt(k.eb*1000)} ${SY}`} sub={`EM: ${fmtD(k.em)}%`} trend={4.8} spData={prf} c={G.pur}/>
       </div>
@@ -305,7 +338,7 @@ function App() {
       <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"2fr 1fr",gap:14,marginBottom:14}}>
         <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd}}>
           <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>◈ {ar?"الإيرادات وصافي الربح":"Revenue & Net Profit"}</div>
-          <Chart series={[{d:cR,c:G.inf},{d:prf,c:G.pos,dash:"5 3"}]} h={mob?130:170} mons={cMs}/>
+          <Chart series={[{d:cRev,c:G.inf},{d:prf,c:G.pos,dash:"5 3"}]} h={mob?130:170} mons={cMs}/>
           <div style={{display:"flex",gap:14,marginTop:6,justifyContent:"center"}}>
             {[[G.inf,ar?"الإيراد":"Revenue"],[G.pos,ar?"صافي الربح":"Net Profit"]].map(([c,l]) => (
               <div key={l} style={{display:"flex",alignItems:"center",gap:5}}>
@@ -909,12 +942,24 @@ function App() {
           {conn.status === "connected" && (
             <div style={{background:"#F0FFF0",border:`1px solid ${G.pos}40`,borderRadius:10,padding:"10px 16px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}} className="np">
               <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <span style={{fontSize:16}}>🟢</span>
+                <span style={{fontSize:16}}>{dataLoading?"⏳":"🟢"}</span>
                 <div>
-                  <div style={{fontSize:12,fontWeight:700,color:G.pos}}>{ar?"متصل بدفترة":"Connected to Daftra"}</div>
-                  <div style={{fontSize:10,color:G.txtF}}>{ar?"ربط البيانات الحقيقية قيد التطوير — الأرقام الحالية للعرض فقط":"Real data sync in development — current numbers are demo"}</div>
+                  <div style={{fontSize:12,fontWeight:700,color:G.pos}}>
+                    {dataLoading?(ar?"جاري جلب بياناتك من دفترة...":"Loading your data from Daftra..."):
+                     realData?(ar?`✅ بيانات حقيقية من دفترة — ${realData.monthCount} شهر`:`✅ Real Daftra data — ${realData.monthCount} months`):
+                     (ar?"متصل بدفترة — لا توجد بيانات مالية بعد":"Connected — No financial data found yet")}
+                  </div>
+                  <div style={{fontSize:10,color:G.txtF}}>
+                    {realData?(ar?"الأرقام من حسابك الحقيقي في دفترة":"Numbers from your real Daftra account"):
+                     (ar?"تأكد من وجود فواتير ومصاريف في دفترة":"Make sure you have invoices & expenses in Daftra")}
+                  </div>
                 </div>
               </div>
+              {!dataLoading && (
+                <button onClick={()=>fetchRealData(conn.token, conn.sub)} style={{padding:"5px 10px",borderRadius:7,border:`1px solid ${G.pos}`,background:"white",color:G.pos,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                  🔄 {ar?"تحديث":"Refresh"}
+                </button>
+              )}
             </div>
           )}
           {conn.status !== "connected" && (
