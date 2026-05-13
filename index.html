@@ -78,25 +78,33 @@ const totOTH = Array.from({length:12},(_,i) => OTH.rental[i]+OTH.interest[i]+OTH
 
 
 // ── DAFTRA PROXY (يحل CORS عبر Vercel Function) ───────────
+const CLIENT_ID_CFO  = "565";
+const OAUTH_URL_CFO  = `https://app.daftra.com/oauth/authorize?client_id=${CLIENT_ID_CFO}&redirect_uri=${encodeURIComponent("https://clink-cfo.vercel.app/callback")}&response_type=code`;
+
 const DaftraAPI = {
-  async req(sub, key, ep) {
-    const url = `/api/daftra?subdomain=${encodeURIComponent(sub)}&apikey=${encodeURIComponent(key)}&endpoint=${encodeURIComponent(ep)}`;
+  startOAuth()   { window.location.href = OAUTH_URL_CFO; },
+  getToken()     { try { return sessionStorage.getItem("clink_cfo_token"); } catch { return null; } },
+  getSub()       { try { return sessionStorage.getItem("clink_cfo_sub");   } catch { return null; } },
+  saveToken(t,s) { try { sessionStorage.setItem("clink_cfo_token",t); if(s) sessionStorage.setItem("clink_cfo_sub",s); } catch {} },
+  clearToken()   { try { sessionStorage.removeItem("clink_cfo_token"); sessionStorage.removeItem("clink_cfo_sub"); } catch {} },
+
+  async req(token, sub, ep, tokenType="apikey") {
+    const url = `/api/daftra?subdomain=${encodeURIComponent(sub||"")}&apikey=${encodeURIComponent(token)}&endpoint=${encodeURIComponent(ep)}&token_type=${tokenType}`;
     const r = await fetch(url);
     if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.message||`HTTP ${r.status}`); }
     return r.json();
   },
-  async testConnection(sub, key) {
-    try { await DaftraAPI.req(sub, key, "invoices.json?limit=1"); return {success:true}; }
+  async testConnection(token, sub) {
+    try { await DaftraAPI.req(token, sub, "invoices.json?limit=1"); return {success:true}; }
     catch(e) { return {success:false, message:e.message}; }
   },
-  async getFinancials(sub, key) {
-    const [inv, exp, inc, tres] = await Promise.all([
-      DaftraAPI.req(sub, key, "invoices.json?limit=200").catch(()=>({data:[]})),
-      DaftraAPI.req(sub, key, "expenses.json?limit=200").catch(()=>({data:[]})),
-      DaftraAPI.req(sub, key, "incomes.json?limit=200").catch(()=>({data:[]})),
-      DaftraAPI.req(sub, key, "treasuries.json?limit=50").catch(()=>({data:[]})),
+  async getFinancials(token, sub) {
+    const [inv, exp, inc] = await Promise.all([
+      DaftraAPI.req(token, sub, "invoices.json?limit=200").catch(()=>({data:[]})),
+      DaftraAPI.req(token, sub, "expenses.json?limit=200").catch(()=>({data:[]})),
+      DaftraAPI.req(token, sub, "incomes.json?limit=200").catch(()=>({data:[]})),
     ]);
-    return { invoices: inv.data||[], expenses: exp.data||[], incomes: inc.data||[], treasuries: tres.data||[] };
+    return { invoices: inv.data||[], expenses: exp.data||[], incomes: inc.data||[] };
   },
 };
 
