@@ -1,18 +1,18 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>CLink CFO | لوحة المدير المالي</title>
-  <style>* { margin:0; padding:0; box-sizing:border-box; } body { background:#FFFDF7; } @media print { .np { display:none!important; } }</style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CLink CFO | لوحة المدير المالي</title>
+<style>* { margin:0; padding:0; box-sizing:border-box; } body { background:#FFFDF7; } @media print { .np { display:none!important; } }</style>
 </head>
 <body>
-  <div id="root"></div>
-  <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
-  <script type="text/babel" data-presets="react">
-    const { useState, useMemo, useEffect } = React;
+<div id="root"></div>
+<script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
+<script type="text/babel" data-presets="react">
+const { useState, useMemo, useEffect } = React;
 
 const useW = () => {
   const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -99,12 +99,23 @@ const DaftraAPI = {
     catch(e) { return {success:false, message:e.message}; }
   },
   async getFinancials(token, sub) {
+    // جرب Bearer أولاً ثم apikey
+    const tryFetch = async (ep) => {
+      for (const t of ["bearer","apikey"]) {
+        try {
+          const data = await DaftraAPI.req(token, sub, ep, t);
+          if (data && data.data) return data;
+        } catch {}
+      }
+      return {data:[]};
+    };
     const [inv, exp, inc] = await Promise.all([
-      DaftraAPI.req(token, sub, "invoices.json?limit=200").catch(()=>({data:[]})),
-      DaftraAPI.req(token, sub, "expenses.json?limit=200").catch(()=>({data:[]})),
-      DaftraAPI.req(token, sub, "incomes.json?limit=200").catch(()=>({data:[]})),
+      tryFetch("invoices.json?limit=500"),
+      tryFetch("expenses.json?limit=500"),
+      tryFetch("incomes.json?limit=500"),
     ]);
-    return { invoices: inv.data||[], expenses: exp.data||[], incomes: inc.data||[] };
+    return { invoices:inv.data||[], expenses:exp.data||[], incomes:inc.data||[] };
+  },||[], expenses: exp.data||[], incomes: inc.data||[] };
   },
 };
 
@@ -203,15 +214,20 @@ function App() {
     setDataLoading(true);
     try {
       const fin = await DaftraAPI.getFinancials(token, sub||"");
-      if (fin.invoices.length > 0 || fin.expenses.length > 0) {
-        const processed = processRealData(fin.invoices, fin.expenses, fin.incomes);
-        if (processed.hasData) {
-          setRealData(processed);
-          return processed;
-        }
+      console.log("Daftra data:", fin.invoices.length, "invoices,", fin.expenses.length, "expenses");
+      // معالجة حتى لو كانت البيانات قليلة
+      const processed = processRealData(fin.invoices, fin.expenses, fin.incomes);
+      if (processed.hasData) {
+        setRealData(processed);
+        return processed;
+      } else if (fin.invoices.length > 0 || fin.expenses.length > 0) {
+        // البيانات موجودة لكن قديمة — استخدمها على أي حال
+        processed.hasData = true;
+        setRealData(processed);
+        return processed;
       }
     } catch(e) {
-      console.warn("Could not fetch real data:", e.message);
+      console.warn("fetchRealData error:", e.message);
     } finally {
       setDataLoading(false);
     }
@@ -946,8 +962,8 @@ function App() {
                 <div>
                   <div style={{fontSize:12,fontWeight:700,color:G.pos}}>
                     {dataLoading?(ar?"جاري جلب بياناتك من دفترة...":"Loading your data from Daftra..."):
-                     realData?(ar?`✅ بيانات حقيقية من دفترة — ${realData.monthCount} شهر`:`✅ Real Daftra data — ${realData.monthCount} months`):
-                     (ar?"متصل بدفترة — لا توجد بيانات مالية بعد":"Connected — No financial data found yet")}
+                     realData?(ar?`✅ بيانات حقيقية — ${realData.rawCounts?.invoices||0} فاتورة | ${realData.rawCounts?.expenses||0} مصروف | ${realData.monthCount} شهر`:`✅ Real data — ${realData.rawCounts?.invoices||0} invoices | ${realData.rawCounts?.expenses||0} expenses`):
+                     (ar?"متصل بدفترة — جاري البحث في بياناتك...":"Connected — Scanning your data...")}
                   </div>
                   <div style={{fontSize:10,color:G.txtF}}>
                     {realData?(ar?"الأرقام من حسابك الحقيقي في دفترة":"Numbers from your real Daftra account"):
@@ -998,7 +1014,7 @@ function App() {
     </>
   );
 }
-    ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
-  </script>
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
 </body>
 </html>
