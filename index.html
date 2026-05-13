@@ -3,16 +3,8 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="description" content="CLink CFO - لوحة المدير المالي | CFO Financial Dashboard"/>
   <title>CLink CFO | لوحة المدير المالي</title>
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { background:#FFFDF7; }
-    ::-webkit-scrollbar { width:6px; }
-    ::-webkit-scrollbar-track { background:#FEF8ED; }
-    ::-webkit-scrollbar-thumb { background:#E8D090; border-radius:3px; }
-    @media print { .np { display:none!important; } }
-  </style>
+  <style>* { margin:0; padding:0; box-sizing:border-box; } body { background:#FFFDF7; } @media print { .np { display:none!important; } }</style>
 </head>
 <body>
   <div id="root"></div>
@@ -21,7 +13,6 @@
   <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
   <script type="text/babel" data-presets="react">
     const { useState, useMemo, useEffect } = React;
-
 
 const useW = () => {
   const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
@@ -85,6 +76,30 @@ const OTH = {
 const totDIR = Array.from({length:12},(_,i) => DIR.products[i]+DIR.services[i]+DIR.contracts[i]+DIR.retail[i]);
 const totOTH = Array.from({length:12},(_,i) => OTH.rental[i]+OTH.interest[i]+OTH.investment[i]+OTH.misc[i]);
 
+
+// ── DAFTRA PROXY (يحل CORS عبر Vercel Function) ───────────
+const DaftraAPI = {
+  async req(sub, key, ep) {
+    const url = `/api/daftra?subdomain=${encodeURIComponent(sub)}&apikey=${encodeURIComponent(key)}&endpoint=${encodeURIComponent(ep)}`;
+    const r = await fetch(url);
+    if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.message||`HTTP ${r.status}`); }
+    return r.json();
+  },
+  async testConnection(sub, key) {
+    try { await DaftraAPI.req(sub, key, "invoices.json?limit=1"); return {success:true}; }
+    catch(e) { return {success:false, message:e.message}; }
+  },
+  async getFinancials(sub, key) {
+    const [inv, exp, inc, tres] = await Promise.all([
+      DaftraAPI.req(sub, key, "invoices.json?limit=200").catch(()=>({data:[]})),
+      DaftraAPI.req(sub, key, "expenses.json?limit=200").catch(()=>({data:[]})),
+      DaftraAPI.req(sub, key, "incomes.json?limit=200").catch(()=>({data:[]})),
+      DaftraAPI.req(sub, key, "treasuries.json?limit=50").catch(()=>({data:[]})),
+    ]);
+    return { invoices: inv.data||[], expenses: exp.data||[], incomes: inc.data||[], treasuries: tres.data||[] };
+  },
+};
+
 const pIdx = p => p==="MTD"?[11]:p==="QTD"?[9,10,11]:Array.from({length:12},(_,i)=>i);
 const pArr = (arr,p) => pIdx(p).map(i=>arr[i]);
 const pSum = (arr,p) => pArr(arr,p).reduce((a,b)=>a+b,0);
@@ -111,12 +126,16 @@ const calcK = period => {
 function App() {
   const {mob,tab} = useW();
   const [page,   setPage]   = useState("dash");
-  const [lang,   setLang]   = useState("AR");
-  const [money,  setMoney]  = useState(CURR[0]);
-  const [period, setPeriod] = useState("YTD");
-  const [showM,  setShowM]  = useState(false);
-  const [expV,   setExpV]   = useState("chart");
-  const [revV,   setRevV]   = useState("breakdown");
+  const [lang,     setLang]     = useState("AR");
+  const [money,    setMoney]    = useState(CURR[0]);
+  const [period,   setPeriod]   = useState("YTD");
+  const [showM,    setShowM]    = useState(false);
+  const [expV,     setExpV]     = useState("chart");
+  const [revV,     setRevV]     = useState("breakdown");
+  const [conn,     setConn]     = useState({sub:"",key:"",status:"demo",token:""});
+  const [showConn, setShowConn] = useState(false);
+  const [connMsg,  setConnMsg]  = useState("");
+  const [authLoad, setAuthLoad] = useState(false);
 
   const ar = lang === "AR";
   const SY = ar ? money.s : money.sE;
@@ -132,6 +151,50 @@ function App() {
   const MAR = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
   const MEN = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const cMs = pIdx(period).map(i => ar ? MAR[i] : MEN[i]);
+
+  // ── OAuth Callback Handler ──────────────────────────────────
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const auth = params.get("auth");
+    if (auth === "success" || auth === "code") {
+      const token = params.get("token") || params.get("code");
+      const sub   = params.get("subdomain") || "";
+      if (token) {
+        DaftraAPI.saveToken(token, sub);
+        setConn(c=>({...c, status:"connected", token, sub}));
+        window.history.replaceState({}, "", "/");
+      }
+    } else if (auth === "error") {
+      setConnMsg(ar?`❌ فشل: ${params.get("reason")||""}`:`❌ Failed: ${params.get("reason")||""}`);
+      window.history.replaceState({}, "", "/");
+    }
+    const savedToken = DaftraAPI.getToken();
+    const savedSub   = DaftraAPI.getSub();
+    if (savedToken && !auth) {
+      setConn(c=>({...c, status:"connected", token:savedToken, sub:savedSub||""}));
+    }
+  }, []);
+
+  const connectOAuth = () => DaftraAPI.startOAuth();
+
+  const connectDaftra = async () => {
+    if (!conn.sub || !conn.key) { setConnMsg(ar?"أدخل النطاق ومفتاح API":"Enter subdomain and API key"); return; }
+    setConn(c=>({...c,status:"connecting"}));
+    setConnMsg(ar?"جاري الاتصال...":"Connecting...");
+    try {
+      const test = await DaftraAPI.testConnection(conn.sub, conn.key);
+      if (!test.success) throw new Error(test.message);
+      setConn(c=>({...c,status:"connected"}));
+      setConnMsg(ar?"✅ تم الاتصال بدفترة! البيانات الآن من حسابك الحقيقي":"✅ Connected to Daftra! Data now from your real account");
+      setShowConn(false);
+    } catch(err) {
+      setConn(c=>({...c,status:"demo"}));
+      const msg = err.message||"";
+      if(msg.includes("401")||msg.includes("API")) setConnMsg(ar?"❌ مفتاح API غير صحيح":"❌ Invalid API Key");
+      else if(msg.includes("404")) setConnMsg(ar?"❌ النطاق غير موجود":"❌ Subdomain not found");
+      else setConnMsg(ar?`❌ ${msg}`:`❌ ${msg}`);
+    }
+  };
 
   const doExcel = () => {
     const rows = BUDGET.map(r => { const v=r.a-r.b; return [(ar?r.ar:r.en),r.b,r.a,v,((v/r.b)*100).toFixed(1)+"%"].join(","); });
@@ -681,6 +744,13 @@ function App() {
       <style>{`* { box-sizing: border-box; } @media print { .np { display:none!important; } }`}</style>
 
       <div style={{minHeight:"100vh",background:G.bg,color:G.txt,fontFamily:"'Cairo',sans-serif",direction:dir}}>
+      {authLoad && (
+        <div style={{position:"fixed",inset:0,background:"rgba(30,20,8,0.7)",zIndex:9999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:16}}>
+          <div style={{width:48,height:48,border:`4px solid rgba(200,168,75,0.3)`,borderTop:`4px solid ${G.gold}`,borderRadius:"50%",animation:"spin 1s linear infinite"}}/>
+          <div style={{fontSize:16,fontWeight:700,color:"white"}}>{ar?"جاري الاتصال بدفترة...":"Connecting to Daftra..."}</div>
+          <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+        </div>
+      )}
 
         {/* SIDEBAR */}
         {!mob && (
@@ -728,11 +798,51 @@ function App() {
             {/* Row 1: Title + Language */}
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
               <h1 style={{fontSize:mob?15:19,fontWeight:800,color:G.txt,margin:0}}>{navLabel(page)}</h1>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+              <button onClick={()=>setShowConn(v=>!v)} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",borderRadius:8,border:`1.5px solid ${conn.status==="connected"?G.pos:G.bdr}`,background:conn.status==="connected"?"#F0FFF0":"white",color:conn.status==="connected"?G.pos:G.txtF,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                <span>{conn.status==="connected"?"🟢":conn.status==="connecting"?"🟡":"🔴"}</span>
+                {conn.status==="connected"?(ar?"متصل":"Connected"):conn.status==="connecting"?(ar?"جاري...":"Connecting..."):(ar?"اتصل بدفترة":"Connect Daftra")}
+              </button>
               <div style={{display:"flex",overflow:"hidden",borderRadius:8,border:`1px solid ${G.bdr}`}}>
                 {["AR","EN"].map(l => (
                   <button key={l} onClick={() => setLang(l)} style={{padding:"6px 14px",border:"none",background:lang===l?G.gold:"transparent",color:lang===l?"white":G.txtF,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>
                 ))}
               </div>
+            </div>
+            {showConn && (
+              <div style={{position:"fixed",inset:0,background:"rgba(30,20,8,0.5)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
+                <div style={{background:"white",borderRadius:16,padding:28,width:"100%",maxWidth:440,boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
+                  <div style={{fontSize:17,fontWeight:800,color:G.goldD,marginBottom:4}}>🔗 {ar?"اتصال بدفترة":"Connect to Daftra"}</div>
+                  <div style={{fontSize:11,color:G.txtF,marginBottom:20}}>{ar?"أدخل بيانات حسابك لجلب بياناتك الحقيقية":"Enter your Daftra account credentials"}</div>
+                  <div style={{marginBottom:12}}>
+                    <div style={{fontSize:11,fontWeight:700,color:G.txtF,marginBottom:4}}>{ar?"النطاق الفرعي":"Subdomain"}</div>
+                    <div style={{display:"flex"}}>
+                      <input value={conn.sub} onChange={e=>setConn(c=>({...c,sub:e.target.value}))} placeholder={ar?"اسم-شركتك":"your-company"} style={{flex:1,padding:"9px 12px",border:`1.5px solid ${G.bdr}`,borderRadius:"8px 0 0 8px",fontSize:13,fontFamily:"inherit",outline:"none"}}/>
+                      <div style={{padding:"9px 10px",background:G.sur2,border:`1.5px solid ${G.bdr}`,borderRadius:"0 8px 8px 0",fontSize:11,color:G.txtF,whiteSpace:"nowrap"}}>.daftra.com</div>
+                    </div>
+                  </div>
+                  <div style={{marginBottom:16}}>
+                    <div style={{fontSize:11,fontWeight:700,color:G.txtF,marginBottom:4}}>API Key</div>
+                    <input type="password" value={conn.key} onChange={e=>setConn(c=>({...c,key:e.target.value}))} placeholder={ar?"مفتاح API من إعدادات دفترة":"API Key from Daftra settings"} style={{width:"100%",padding:"9px 12px",border:`1.5px solid ${G.bdr}`,borderRadius:8,fontSize:13,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}}/>
+                  </div>
+                  {connMsg && <div style={{padding:"8px 12px",borderRadius:8,background:connMsg.includes("✅")?"#F0FFF0":"#FFF0EE",color:connMsg.includes("✅")?G.pos:G.neg,fontSize:12,fontWeight:600,marginBottom:14}}>{connMsg}</div>}
+                  {/* OAuth — موصى به */}
+                  <button onClick={connectOAuth} style={{width:"100%",padding:"11px",borderRadius:9,border:"none",background:`linear-gradient(135deg,${G.gold},${G.goldD})`,color:"white",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",marginBottom:8,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+                    <span style={{fontSize:18}}>🔗</span>{ar?"تسجيل دخول بدفترة (موصى به)":"Login with Daftra (Recommended)"}
+                  </button>
+                  <div style={{textAlign:"center",fontSize:11,color:G.txtF,marginBottom:8}}>{ar?"— أو أدخل API Key يدوياً —":"— or enter API Key manually —"}</div>
+                  <div style={{display:"flex",gap:8}}>
+                    <button onClick={()=>{setShowConn(false);setConnMsg("");}} style={{flex:1,padding:"9px",borderRadius:8,border:`1px solid ${G.bdr}`,background:"transparent",color:G.txtF,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{ar?"إلغاء":"Cancel"}</button>
+                    <button onClick={connectDaftra} disabled={conn.status==="connecting"} style={{flex:1,padding:"9px",borderRadius:8,border:`1px solid ${G.bdr}`,background:"white",color:G.goldD,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
+                      {conn.status==="connecting"?(ar?"جاري...":"Connecting..."):(ar?"API Key":"API Key")}
+                    </button>
+                  </div>
+                  <div style={{marginTop:14,padding:"8px 12px",background:G.sur,borderRadius:7,fontSize:10,color:G.txtF}}>
+                    💡 {ar?"احصل على API Key من: دفترة → الإعدادات → إعدادات API":"Get API Key: Daftra → Settings → API Settings"}
+                  </div>
+                </div>
+              </div>
+            )}
             </div>
 
             {/* Row 2: PERIOD + CURRENCY BAR */}
@@ -801,10 +911,7 @@ function App() {
     </>
   );
 }
-
-    ReactDOM.createRoot(document.getElementById("root")).render(
-      React.createElement(App)
-    );
+    ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
   </script>
 </body>
 </html>
