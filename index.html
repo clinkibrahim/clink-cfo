@@ -159,7 +159,7 @@ function App() {
   } : FY, [realData]);
 
   const k  = useMemo(() => calcK(period, DATA), [period, DATA]);
-  const cR = useMemo(() => pArr(DATA.rev, period), [period,DATA]);
+  const cRev = useMemo(() => pArr(DATA.rev, period), [period,DATA]);
   const cO = useMemo(() => pArr(DATA.opex,period), [period,DATA]);
   const cG = useMemo(() => pArr(DATA.ga,  period), [period,DATA]);
   const cC = useMemo(() => pArr(DATA.cogs,period), [period,DATA]);
@@ -328,7 +328,7 @@ function App() {
 
       {/* KPIs */}
       <div style={{display:"grid",gridTemplateColumns:mob?"1fr 1fr":"repeat(4,1fr)",gap:12,marginBottom:14}}>
-        <KPI label={ar?"إجمالي الإيرادات":"Total Revenue"} val={`${fmt(k.r*1000)} ${SY}`}  sub={`${period} • ${k.grow>=0?"+":""}${fmtD(k.grow)}%`} trend={k.grow} spData={cR} c={G.inf}/>
+        <KPI label={ar?"إجمالي الإيرادات":"Total Revenue"} val={`${fmt(k.r*1000)} ${SY}`}  sub={`${period} • ${k.grow>=0?"+":""}${fmtD(k.grow)}%`} trend={k.grow} spData={cRev} c={G.inf}/>
         <KPI label={ar?"إجمالي الربح":"Gross Profit"}      val={`${fmt(k.gp*1000)} ${SY}`} sub={`GM: ${fmtD(k.gm)}%`} trend={6.4} spData={cRev.map((v,i)=>v-cC[i])} c={G.pos}/>
         <KPI label={ar?"صافي الربح":"Net Profit"}          val={`${fmt(k.nt*1000)} ${SY}`} sub={`NM: ${fmtD(k.nm)}%`} trend={5.2} spData={prf} c={G.gold}/>
         <KPI label="EBITDA"                                  val={`${fmt(k.eb*1000)} ${SY}`} sub={`EM: ${fmtD(k.em)}%`} trend={4.8} spData={prf} c={G.pur}/>
@@ -761,7 +761,7 @@ function App() {
               <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"repeat(3,1fr)",gap:12}}>
                 {[
                   {l:ar?"تركز الإيرادات التشغيلية":"Direct Rev. Concentration", v:`${fmtD(dPct)}%`, n:dPct>=90?(ar?"تركز صحي ✓":"Healthy ✓"):(ar?"راجع التنوع":"Review mix"), c:dPct>=90?G.pos:G.wrn},
-                  {l:ar?"متوسط الإيراد الشهري":"Avg. Monthly Revenue",          v:fmt(k.r/cR.length*1000), n:SY, c:G.gold},
+                  {l:ar?"متوسط الإيراد الشهري":"Avg. Monthly Revenue",          v:fmt(k.r/cRev.length*1000), n:SY, c:G.gold},
                   {l:ar?"حصة الإيرادات الأخرى":"Other Revenue Share",           v:`${fmtD(100-dPct)}%`, n:ar?"من إجمالي الإيراد":"of total revenue", c:G.pur},
                 ].map((x,i) => (
                   <div key={i} style={{background:G.sur,borderRadius:10,padding:"12px 14px",borderRight:ar?`3px solid ${x.c}`:"none",borderLeft:!ar?`3px solid ${x.c}`:"none"}}>
