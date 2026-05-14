@@ -97,13 +97,21 @@ const EMPTY = {
 // ══════════════════════════════════════════════════════════
 function parseResp(raw, key) {
   if (!raw) return [];
-  if (Array.isArray(raw.data))      return raw.data;
-  if (Array.isArray(raw[key]))      return raw[key];
-  const lk = key[0].toLowerCase() + key.slice(1);
-  if (Array.isArray(raw[lk]))       return raw[lk];
-  if (Array.isArray(raw))           return raw;
-  if (raw.data && Array.isArray(raw.data[key])) return raw.data[key];
-  return [];
+  let items = [];
+  if (Array.isArray(raw.data))      items = raw.data;
+  else if (Array.isArray(raw[key])) items = raw[key];
+  else { const lk = key[0].toLowerCase()+key.slice(1); if(Array.isArray(raw[lk])) items=raw[lk]; }
+  if (!items.length && Array.isArray(raw)) items = raw;
+  if (!items.length && raw.data && Array.isArray(raw.data[key])) items = raw.data[key];
+  // Unwrap nested Daftra structure: {Invoice:{...}} → {...}
+  return items.map(item => {
+    if (!item || typeof item !== "object") return item;
+    const keys = Object.keys(item);
+    if (keys.length === 1 && item[keys[0]] && typeof item[keys[0]] === "object" && !Array.isArray(item[keys[0]])) {
+      return item[keys[0]];
+    }
+    return item;
+  });
 }
 
 function statusOf(total, paid, raw) {
@@ -116,65 +124,87 @@ function statusOf(total, paid, raw) {
   return "unpaid";
 }
 
-const mapInv = i => ({
-  id:       i.id,
-  number:   i.number || i.serial_number || String(i.id),
-  client:   i.client_name || i.client?.name || "",
-  clientEn: i.client_name_en || i.client_name || "",
-  amount:   parseFloat(i.total || i.amount || i.grand_total || 0),
-  paid:     parseFloat(i.paid_amount || i.paid || i.amount_paid || 0),
-  date:     i.issue_date || i.date || "",
-  status:   statusOf(i.total||i.amount, i.paid_amount||i.paid, i.payment_status||i.status),
-  due_date: i.due_date || "",
-});
+const mapInv = i => {
+  const amount = parseFloat(i.summary_total || i.total || i.amount || i.grand_total || 0);
+  const paid   = parseFloat(i.summary_paid  || i.paid_amount || i.paid || i.amount_paid || 0);
+  const rawSt  = i.payment_status || i.status || "";
+  // Daftra status format: "null => Unpaid" or "1 => Paid" or "2 => Partially Paid"
+  let status = "unpaid";
+  if (rawSt.toLowerCase().includes("paid") && !rawSt.toLowerCase().includes("unpaid") && !rawSt.toLowerCase().includes("partial")) status="paid";
+  else if (rawSt.toLowerCase().includes("partial")) status="partial";
+  else if (rawSt === "1") status="paid";
+  else if (rawSt === "2") status="partial";
+  else if (paid >= amount && amount > 0) status="paid";
+  else if (paid > 0 && paid < amount) status="partial";
+  return {
+    id:       i.id,
+    number:   i.no || i.number || i.serial_number || String(i.id),
+    client:   i.client_business_name || i.name || i.client_name || i.client?.name || "",
+    clientEn: i.client_business_name || i.client_name_en || i.client_name || "",
+    amount,
+    paid,
+    date:     i.date || i.issue_date || "",
+    status,
+    due_date: i.due_date || "",
+  };
+};
 
 const mapExp = e => ({
   id:         e.id,
-  category:   e.category_name || e.category || "متنوع",
-  categoryEn: e.category_name_en || e.category_name || e.category || "Misc",
-  amount:     parseFloat(e.amount || e.total || 0),
-  date:       e.date || e.expense_date || "",
-  vendor:     e.vendor_name || e.vendor || "",
-  note:       e.notes || e.description || "",
+  category:   e.expense_category_name || e.category_name || e.category || e.title || "متنوع",
+  categoryEn: e.expense_category_name || e.category_name || e.category || e.title || "Misc",
+  amount:     parseFloat(e.amount || e.total || e.summary_total || 0),
+  date:       e.date || e.expense_date || e.created || "",
+  vendor:     e.payee || e.vendor_name || e.vendor || e.staff_id || "",
+  note:       e.notes || e.description || e.title || "",
 });
 
-const mapPur = p => ({
-  id:         p.id,
-  number:     p.number || String(p.id),
-  supplier:   p.supplier_name || p.supplier?.name || "",
-  supplierEn: p.supplier_name_en || p.supplier_name || "",
-  amount:     parseFloat(p.total || p.amount || p.grand_total || 0),
-  paid:       parseFloat(p.paid_amount || p.paid || 0),
-  date:       p.issue_date || p.date || "",
-  status:     statusOf(p.total||p.amount, p.paid_amount||p.paid, p.payment_status||p.status),
-});
+const mapPur = p => {
+  const amount = parseFloat(p.summary_total || p.total || p.amount || 0);
+  const paid   = parseFloat(p.summary_paid || p.paid_amount || p.paid || 0);
+  const rawSt  = p.payment_status || p.status || "";
+  let status = "unpaid";
+  if (rawSt.toLowerCase().includes("paid") && !rawSt.toLowerCase().includes("unpaid") && !rawSt.toLowerCase().includes("partial")) status="paid";
+  else if (rawSt.toLowerCase().includes("partial")) status="partial";
+  else if (paid >= amount && amount > 0) status="paid";
+  else if (paid > 0 && paid < amount) status="partial";
+  return {
+    id:         p.id,
+    number:     p.no || p.number || String(p.id),
+    supplier:   p.supplier_business_name || p.supplier_name || p.name || p.supplier?.name || "",
+    supplierEn: p.supplier_business_name || p.supplier_name || "",
+    amount, paid, status,
+    date:       p.date || p.issue_date || "",
+  };
+};
 
 const mapCli = c => ({
   id:      c.id,
-  name:    c.name || c.client_name || "",
-  nameEn:  c.name_en || c.name || "",
-  balance: parseFloat(c.balance || c.outstanding_balance || 0),
+  name:    c.business_name || c.name || c.client_name || (c.first_name+" "+c.last_name).trim() || "",
+  nameEn:  c.business_name || c.name || c.client_name || "",
+  balance: parseFloat(c.balance || c.outstanding_balance || c.credit_limit || 0),
   overdue: parseFloat(c.overdue_balance || c.overdue || 0),
   days:    parseInt(c.overdue_days || 0),
-  phone:   c.phone || c.mobile || "",
+  phone:   c.phone1 || c.phone || c.mobile || "",
 });
 
 const mapSup = s => ({
   id:      s.id,
-  name:    s.name || s.supplier_name || "",
-  nameEn:  s.name_en || s.name || "",
+  name:    s.business_name || s.name || s.supplier_name || (s.first_name+" "+s.last_name).trim() || "",
+  nameEn:  s.business_name || s.name || s.supplier_name || "",
   balance: parseFloat(s.balance || s.outstanding_balance || 0),
   overdue: parseFloat(s.overdue_balance || s.overdue || 0),
   days:    parseInt(s.overdue_days || 0),
+  phone:   s.phone1 || s.phone || "",
 });
 
 const mapTre = t => ({
   id:       t.id,
-  name:     t.name || t.treasury_name || "",
-  nameEn:   t.name_en || t.name || "",
-  balance:  parseFloat(t.balance || t.current_balance || 0),
-  currency: t.currency || t.currency_code || "EGP",
-  type:     (t.name||"").match(/بنك|bank/i) ? "bank" : (t.type || "cash"),
+  name:     t.name || t.treasury_name || t.title || "",
+  nameEn:   t.name_en || t.name || t.title || "",
+  balance:  parseFloat(t.balance || t.current_balance || t.amount || 0),
+  currency: t.currency_code || t.currency || "EGP",
+  type:     (t.name||t.title||"").match(/بنك|bank/i) ? "bank" : (t.type || "cash"),
 });
 
 // ── Period filter ──────────────────────────────────────────
