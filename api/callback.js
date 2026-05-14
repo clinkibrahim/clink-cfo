@@ -1,95 +1,86 @@
 // ═══════════════════════════════════════════════════════════
-//  CLink · Daftra API Proxy — api/daftra.js
-//  Fix: better logging + token_type validation
+//  CLink · Daftra OAuth Callback — api/callback.js
+//  Fix: token_type case-insensitive + subdomain extraction
 // ═══════════════════════════════════════════════════════════
 export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") return res.status(200).end();
+  const { code, error } = req.query;
+  if (error) return res.redirect(`/?auth=error&reason=${encodeURIComponent(error)}`);
+  if (!code)  return res.redirect("/?auth=error&reason=no_code");
 
-  const { subdomain, apikey, endpoint, token_type } = req.query;
+  const CLIENT_ID     = process.env.DAFTRA_CLIENT_ID;
+  const CLIENT_SECRET = process.env.DAFTRA_CLIENT_SECRET;
+  const REDIRECT_URI  = process.env.DAFTRA_REDIRECT_URI;
 
-  if (!apikey || !endpoint) {
-    return res.status(400).json({ success: false, error: "missing_params", required: ["apikey", "endpoint"] });
-  }
+  if (!CLIENT_SECRET) return res.redirect("/?auth=error&reason=missing_secret");
+  if (!CLIENT_ID)     return res.redirect("/?auth=error&reason=missing_client_id");
 
-  // ✅ بناء الـ headers حسب نوع التوثيق
-  const headers = { Accept: "application/json", "Content-Type": "application/json" };
+  try {
+    // تبادل code بـ access_token
+    const tokenRes = await fetch("https://app.daftra.com/oauth/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        grant_type:    "authorization_code",
+        client_id:     CLIENT_ID,
+        client_secret: CLIENT_SECRET,
+        redirect_uri:  REDIRECT_URI,
+        code,
+      }),
+    });
 
-  // token_type=bearer → OAuth | غيره → API Key
-  if ((token_type || "").toLowerCase() === "bearer") {
-    headers["Authorization"] = `Bearer ${apikey}`;
-    console.log("[CLink] Using Bearer token for endpoint:", endpoint);
-  } else {
-    headers["apikey"] = apikey;
-    console.log("[CLink] Using apikey for endpoint:", endpoint);
-  }
+    const raw = await tokenRes.text();
+    console.log("[CLink] Daftra token response:", tokenRes.status, raw);
 
-  // ✅ ترتيب محاولات الـ URL
-  const urls = [];
-  if (subdomain && subdomain.trim()) {
-    // نظف الـ subdomain من أي http أو .daftra.com لو جاء كامل
-    const clean = subdomain.replace(/https?:\/\//i, "").replace(/\.daftra\.com.*/i, "").trim();
-    if (clean) {
-      urls.push(`https://${clean}.daftra.com/api2/${endpoint}`);
+    if (!tokenRes.ok) {
+      console.error("[CLink] Token exchange failed:", tokenRes.status, raw);
+      return res.redirect(`/?auth=error&reason=token_exchange_failed`);
     }
-  }
-  urls.push(`https://app.daftra.com/api2/${endpoint}`);
 
-  console.log("[CLink] Trying URLs:", urls);
-
-  let lastErr = null;
-  let lastStatus = null;
-
-  for (const url of urls) {
+    let tokenData;
     try {
-      const r = await fetch(url, { headers });
-      lastStatus = r.status;
-      console.log("[CLink] Response from", url, "→ status:", r.status);
-
-      if (r.status === 401) {
-        return res.status(401).json({
-          success: false,
-          error:   "invalid_token",
-          message: "التوثيق فشل — تحقق من التوكن أو أعد تسجيل الدخول",
-          url,
-        });
-      }
-
-      if (r.status === 403) {
-        return res.status(403).json({
-          success: false,
-          error:   "forbidden",
-          message: "لا توجد صلاحية لهذه البيانات — تحقق من الـ scopes في دفترة",
-          url,
-        });
-      }
-
-      if (r.status === 404) {
-        lastErr = `404 — endpoint not found: ${url}`;
-        continue; // جرب الـ URL التالي
-      }
-
-      if (!r.ok) {
-        lastErr = `HTTP ${r.status} from ${url}`;
-        continue;
-      }
-
-      const data = await r.json();
-      return res.status(200).json(data);
-
-    } catch (e) {
-      lastErr = e.message;
-      console.error("[CLink] Fetch error for", url, ":", e.message);
+      tokenData = JSON.parse(raw);
+    } catch {
+      console.error("[CLink] Failed to parse token response:", raw);
+      return res.redirect(`/?auth=error&reason=invalid_json`);
     }
-  }
 
-  return res.status(500).json({
-    success: false,
-    error:   "all_urls_failed",
-    message: lastErr || "فشل الاتصال بجميع endpoints",
-    tried:   urls,
-    last_status: lastStatus,
-  });
+    // ✅ الإصلاح الرئيسي: toLowerCase() لتجنب مشكلة الحرف الكبير "Bearer"
+    const raw_token_type = (tokenData.token_type || "").toLowerCase();
+    const token_type = raw_token_type === "bearer" ? "bearer" : "apikey";
+
+    // استخراج الـ token من أي حقل يرجعه دفترة
+    const access_token =
+      tokenData.access_token ||
+      tokenData.token        ||
+      tokenData.apikey       ||
+      null;
+
+    if (!access_token) {
+      console.error("[CLink] No access token found in response:", tokenData);
+      return res.redirect(`/?auth=error&reason=no_token`);
+    }
+
+    // ✅ استخراج الـ subdomain من أي حقل ممكن
+    const subdomain =
+      tokenData.subdomain  ||
+      tokenData.store_url  ||
+      tokenData.domain     ||
+      tokenData.company_subdomain ||
+      "";
+
+    console.log("[CLink] Auth success — token_type:", token_type, "| subdomain:", subdomain || "none");
+
+    const params = new URLSearchParams({
+      auth:       "success",
+      token:      access_token,
+      token_type: token_type,
+      subdomain:  subdomain,
+    });
+
+    return res.redirect(`/?${params.toString()}`);
+
+  } catch (err) {
+    console.error("[CLink] Callback exception:", err.message);
+    return res.redirect(`/?auth=error&reason=${encodeURIComponent(err.message)}`);
+  }
 }
