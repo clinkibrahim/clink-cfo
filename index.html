@@ -1,747 +1,850 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="description" content="CLink CFO - لوحة المدير المالي | CFO Financial Dashboard"/>
-  <title>CLink CFO | لوحة المدير المالي</title>
-  <style>
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body { background:#FFFDF7; }
-    ::-webkit-scrollbar { width:6px; }
-    ::-webkit-scrollbar-track { background:#FEF8ED; }
-    ::-webkit-scrollbar-thumb { background:#E8D090; border-radius:3px; }
-    @media print { .np { display:none!important; } }
-  </style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CLink· CFO Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#FFFDF7;font-family:'Cairo',sans-serif}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:#FEF8ED}
+::-webkit-scrollbar-thumb{background:#E8D090;border-radius:3px}
+@media print{.np{display:none!important}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+</style>
 </head>
 <body>
-  <div id="root"></div>
-  <script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
-  <script type="text/babel" data-presets="react">
-    const { useState, useMemo, useEffect } = React;
-
-
-const useScreen = () => {
-  const [w, setW] = useState(typeof window !== "undefined" ? window.innerWidth : 1200);
-  useEffect(() => { const f = () => setW(window.innerWidth); window.addEventListener("resize",f); return ()=>window.removeEventListener("resize",f); },[]);
-  return { mob: w<640, tab: w>=640&&w<1024 };
-};
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useMemo, useCallback, useRef } = React;
 
 const G = {
-  bg:"#FFFDF7",sur:"#FEF8ED",sur2:"#FDF3D8",bdr:"#E8D090",bdrS:"#F2E4B0",
-  gold:"#C8A84B",goldD:"#9B7820",goldP:"#C8A84B18",goldL:"#FFF8E0",
-  txt:"#1E1408",txtD:"#5C4020",txtF:"#9B7840",
-  pos:"#1A6B1A",neg:"#B03020",wrn:"#C07010",inf:"#1A5C8A",pur:"#5B21B6",
+  bg:"#FFFDF7", sur:"#FEF8ED", sur2:"#FDF3D8",
+  bdr:"#E8D090", bdrS:"#F2E4B0",
+  gold:"#C8A84B", goldD:"#9B7820", goldP:"#C8A84B18", goldL:"#FFF8E0",
+  txt:"#1E1408", txtD:"#5C4020", txtF:"#9B7840",
+  pos:"#1A6B1A", neg:"#B03020", wrn:"#C07010",
+  inf:"#1A5C8A", pur:"#5B21B6",
+  shd:"0 2px 12px rgba(200,168,75,0.12)",
 };
 
-const CURR=[
-  {code:"EGP",s:"ج.م",sE:"EGP",n:"الجنيه المصري",nE:"Egyptian Pound",f:"🇪🇬"},
-  {code:"SAR",s:"ر.س",sE:"SAR",n:"الريال السعودي",nE:"Saudi Riyal",f:"🇸🇦"},
-  {code:"AED",s:"د.إ",sE:"AED",n:"الدرهم الإماراتي",nE:"UAE Dirham",f:"🇦🇪"},
-  {code:"KWD",s:"د.ك",sE:"KWD",n:"الدينار الكويتي",nE:"Kuwaiti Dinar",f:"🇰🇼"},
-  {code:"BHD",s:"د.ب",sE:"BHD",n:"الدينار البحريني",nE:"Bahraini Dinar",f:"🇧🇭"},
-  {code:"QAR",s:"ر.ق",sE:"QAR",n:"الريال القطري",nE:"Qatari Riyal",f:"🇶🇦"},
+const CURR = [
+  {code:"EGP",s:"ج.م",sE:"EGP",n:"الجنيه المصري",  nE:"Egyptian Pound", f:"🇪🇬"},
+  {code:"SAR",s:"ر.س",sE:"SAR",n:"الريال السعودي", nE:"Saudi Riyal",    f:"🇸🇦"},
+  {code:"AED",s:"د.إ",sE:"AED",n:"الدرهم الإماراتي",nE:"UAE Dirham",    f:"🇦🇪"},
+  {code:"KWD",s:"د.ك",sE:"KWD",n:"الدينار الكويتي",nE:"Kuwaiti Dinar",  f:"🇰🇼"},
+  {code:"BHD",s:"د.ب",sE:"BHD",n:"الدينار البحريني",nE:"Bahraini Dinar", f:"🇧🇭"},
+  {code:"QAR",s:"ر.ق",sE:"QAR",n:"الريال القطري",  nE:"Qatari Riyal",  f:"🇶🇦"},
   {code:"JOD",s:"د.أ",sE:"JOD",n:"الدينار الأردني",nE:"Jordanian Dinar",f:"🇯🇴"},
 ];
 
-// ── DEMO DATA ──────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════
+// DEMO DATA — يظهر فقط في وضع Demo
+// ══════════════════════════════════════════════════════════
 const DEMO = {
-  rev:  [1850,2120,1980,2340,2680,2580,2890,3120,2950,3340,3580,3820],
-  cogs: [1110,1270,1190,1380,1540,1480,1620,1730,1640,1820,1930,2040],
-  opex: [220,245,230,270,295,285,320,345,330,365,390,410],
-  ga:   [165,165,165,170,180,175,190,195,195,210,215,220],
-  cash: [890,945,1020,1180,1240,1190,1340,1490,1410,1620,1810,2050],
-  ar:   [620,680,720,810,890,920,1020,1100,1180,1280,1390,1510],
-  ap:   [420,460,480,540,590,580,640,690,720,780,830,890],
-  emp:  [42,42,44,44,45,45,47,47,48,48,50,50],
+  invoices:[
+    {id:1,number:"INV-001",client:"شركة الأهرام",    clientEn:"Al-Ahram Co.",   amount:85000, paid:85000, date:"2025-11-15",status:"paid"},
+    {id:2,number:"INV-002",client:"مجموعة النيل",   clientEn:"Nile Group",      amount:62000, paid:62000, date:"2025-11-20",status:"paid"},
+    {id:3,number:"INV-003",client:"الفنادق المتحدة",clientEn:"United Hotels",   amount:76000, paid:38000, date:"2025-12-01",status:"partial"},
+    {id:4,number:"INV-004",client:"مؤسسة سيناء",   clientEn:"Sinai Foundation",amount:88000, paid:0,     date:"2025-12-05",status:"unpaid"},
+    {id:5,number:"INV-005",client:"شركة دلتا",     clientEn:"Delta Co.",        amount:42000, paid:0,     date:"2025-12-10",status:"unpaid"},
+  ],
+  expenses:[
+    {id:1,category:"رواتب",   categoryEn:"Payroll",   amount:145000,date:"2025-12-01",vendor:"HR"},
+    {id:2,category:"إيجار",   categoryEn:"Rent",      amount:25000, date:"2025-12-01",vendor:"مالك العقار"},
+    {id:3,category:"مرافق",   categoryEn:"Utilities", amount:8500,  date:"2025-12-05",vendor:"كهرباء"},
+    {id:4,category:"تسويق",   categoryEn:"Marketing", amount:22000, date:"2025-12-08",vendor:"إعلانات"},
+    {id:5,category:"متنوع",   categoryEn:"Misc",      amount:14000, date:"2025-12-20",vendor:"متنوع"},
+  ],
+  purchaseInvoices:[
+    {id:1,number:"PO-001",supplier:"المورد الرئيسي",supplierEn:"Main Supplier",amount:185000,paid:185000,date:"2025-11-01",status:"paid"},
+    {id:2,number:"PO-002",supplier:"مورد المواد",  supplierEn:"Materials Co.", amount:92000, paid:92000, date:"2025-11-15",status:"paid"},
+    {id:3,number:"PO-003",supplier:"خدمات تقنية", supplierEn:"Tech Services", amount:45000, paid:0,     date:"2025-12-01",status:"unpaid"},
+  ],
+  clients:[
+    {id:1,name:"مؤسسة سيناء",   nameEn:"Sinai Foundation",balance:88000,overdue:88000,days:30},
+    {id:2,name:"شركة دلتا",    nameEn:"Delta Co.",        balance:42000,overdue:42000,days:22},
+    {id:3,name:"الفنادق المتحدة",nameEn:"United Hotels",  balance:38000,overdue:0,    days:0},
+  ],
+  suppliers:[
+    {id:1,name:"خدمات تقنية",   nameEn:"Tech Services", balance:45000,overdue:45000,days:10},
+    {id:2,name:"المورد الرئيسي",nameEn:"Main Supplier", balance:0,    overdue:0,    days:0},
+  ],
+  treasuries:[
+    {id:1,name:"الخزينة الرئيسية",  nameEn:"Main Treasury",balance:485000,currency:"EGP",type:"cash"},
+    {id:2,name:"حساب البنك الأهلي",nameEn:"NBE Account",   balance:920000,currency:"EGP",type:"bank"},
+    {id:3,name:"حساب CIB",         nameEn:"CIB Account",   balance:340000,currency:"EGP",type:"bank"},
+  ],
 };
 
-const MAR=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
-const MEN=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-
-// ── DAFTRA OAUTH ───────────────────────────────────────────
-const DAFTRA = {
-  CLIENT_ID: "565",
-  REDIRECT:  "https://clink-cfo.vercel.app/callback",
-  startOAuth() {
-    window.location.href = `https://app.daftra.com/oauth/authorize?client_id=${this.CLIENT_ID}&redirect_uri=${encodeURIComponent(this.REDIRECT)}&response_type=code`;
-  },
-  getToken()    { try{return sessionStorage.getItem("cfo_token");}catch{return null;} },
-  getSub()      { try{return sessionStorage.getItem("cfo_sub");}catch{return null;} },
-  save(t,s)     { try{sessionStorage.setItem("cfo_token",t);if(s)sessionStorage.setItem("cfo_sub",s);}catch{} },
-  clear()       { try{sessionStorage.removeItem("cfo_token");sessionStorage.removeItem("cfo_sub");}catch{} },
-
-  async api(token, sub, endpoint) {
-    // يجرب Bearer ثم apikey
-    for (const type of ["bearer","apikey"]) {
-      try {
-        const headers = type==="bearer"
-          ? {Authorization:`Bearer ${token}`, Accept:"application/json"}
-          : {apikey:token, Accept:"application/json"};
-        const base = sub ? `https://${sub}.daftra.com` : "https://app.daftra.com";
-        const r = await fetch(`${base}/api2/${endpoint}`, {headers});
-        if (r.ok) {
-          const d = await r.json();
-          if (d && (d.data !== undefined)) return d;
-        }
-      } catch {}
-    }
-    // Fallback: عبر الـ proxy
-    for (const type of ["bearer","apikey"]) {
-      try {
-        const url = `/api/daftra?subdomain=${encodeURIComponent(sub||"")}&apikey=${encodeURIComponent(token)}&endpoint=${encodeURIComponent(endpoint)}&token_type=${type}`;
-        const r = await fetch(url);
-        if (r.ok) {
-          const d = await r.json();
-          if (d && d.data !== undefined) return d;
-        }
-      } catch {}
-    }
-    return {data:[]};
-  },
-
-  async fetchAll(token, sub) {
-    const [inv, exp, inc] = await Promise.all([
-      this.api(token, sub, "invoices.json?limit=500"),
-      this.api(token, sub, "expenses.json?limit=500"),
-      this.api(token, sub, "incomes.json?limit=500"),
-    ]);
-    return {
-      invoices: inv.data||[],
-      expenses: exp.data||[],
-      incomes:  inc.data||[],
-    };
-  },
+// ══════════════════════════════════════════════════════════
+// EMPTY STATE — يُستخدم عند الاتصال قبل جلب البيانات
+// ══════════════════════════════════════════════════════════
+const EMPTY = {
+  invoices:[], expenses:[], purchaseInvoices:[],
+  clients:[], suppliers:[], treasuries:[],
 };
 
-// ── PROCESS REAL DATA ──────────────────────────────────────
-const buildRealData = (invoices, expenses, incomes) => {
-  const now = new Date();
-  const months = Array.from({length:12},(_,i)=>{
-    const d = new Date(now.getFullYear(), now.getMonth()-11+i, 1);
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+// ══════════════════════════════════════════════════════════
+// DAFTRA RESPONSE PARSER
+// دفترة تُرجع بنى مختلفة — نجرب الكل
+// ══════════════════════════════════════════════════════════
+function parseResp(raw, key) {
+  if (!raw) return [];
+  if (Array.isArray(raw.data))      return raw.data;
+  if (Array.isArray(raw[key]))      return raw[key];
+  const lk = key[0].toLowerCase() + key.slice(1);
+  if (Array.isArray(raw[lk]))       return raw[lk];
+  if (Array.isArray(raw))           return raw;
+  if (raw.data && Array.isArray(raw.data[key])) return raw.data[key];
+  return [];
+}
+
+function statusOf(total, paid, raw) {
+  const s = (raw||"").toLowerCase();
+  if (["paid","مدفوعة","1","yes"].includes(s)) return "paid";
+  if (["partial","جزئي"].includes(s))          return "partial";
+  const t = parseFloat(total)||0, p = parseFloat(paid)||0;
+  if (t <= 0 || p >= t) return "paid";
+  if (p > 0)            return "partial";
+  return "unpaid";
+}
+
+const mapInv = i => ({
+  id:       i.id,
+  number:   i.number || i.serial_number || String(i.id),
+  client:   i.client_name || i.client?.name || "",
+  clientEn: i.client_name_en || i.client_name || "",
+  amount:   parseFloat(i.total || i.amount || i.grand_total || 0),
+  paid:     parseFloat(i.paid_amount || i.paid || i.amount_paid || 0),
+  date:     i.issue_date || i.date || "",
+  status:   statusOf(i.total||i.amount, i.paid_amount||i.paid, i.payment_status||i.status),
+  due_date: i.due_date || "",
+});
+
+const mapExp = e => ({
+  id:         e.id,
+  category:   e.category_name || e.category || "متنوع",
+  categoryEn: e.category_name_en || e.category_name || e.category || "Misc",
+  amount:     parseFloat(e.amount || e.total || 0),
+  date:       e.date || e.expense_date || "",
+  vendor:     e.vendor_name || e.vendor || "",
+  note:       e.notes || e.description || "",
+});
+
+const mapPur = p => ({
+  id:         p.id,
+  number:     p.number || String(p.id),
+  supplier:   p.supplier_name || p.supplier?.name || "",
+  supplierEn: p.supplier_name_en || p.supplier_name || "",
+  amount:     parseFloat(p.total || p.amount || p.grand_total || 0),
+  paid:       parseFloat(p.paid_amount || p.paid || 0),
+  date:       p.issue_date || p.date || "",
+  status:     statusOf(p.total||p.amount, p.paid_amount||p.paid, p.payment_status||p.status),
+});
+
+const mapCli = c => ({
+  id:      c.id,
+  name:    c.name || c.client_name || "",
+  nameEn:  c.name_en || c.name || "",
+  balance: parseFloat(c.balance || c.outstanding_balance || 0),
+  overdue: parseFloat(c.overdue_balance || c.overdue || 0),
+  days:    parseInt(c.overdue_days || 0),
+  phone:   c.phone || c.mobile || "",
+});
+
+const mapSup = s => ({
+  id:      s.id,
+  name:    s.name || s.supplier_name || "",
+  nameEn:  s.name_en || s.name || "",
+  balance: parseFloat(s.balance || s.outstanding_balance || 0),
+  overdue: parseFloat(s.overdue_balance || s.overdue || 0),
+  days:    parseInt(s.overdue_days || 0),
+});
+
+const mapTre = t => ({
+  id:       t.id,
+  name:     t.name || t.treasury_name || "",
+  nameEn:   t.name_en || t.name || "",
+  balance:  parseFloat(t.balance || t.current_balance || 0),
+  currency: t.currency || t.currency_code || "EGP",
+  type:     (t.name||"").match(/بنك|bank/i) ? "bank" : (t.type || "cash"),
+});
+
+// ── Period filter ──────────────────────────────────────────
+function byPeriod(items, period, f="date") {
+  const now = new Date(), y=now.getFullYear(), m=now.getMonth();
+  return items.filter(it=>{
+    const d = new Date(it[f]);
+    if (isNaN(d)) return true;
+    if (period==="MTD") return d.getFullYear()===y && d.getMonth()===m;
+    if (period==="QTD") return d.getFullYear()===y && Math.floor(d.getMonth()/3)===Math.floor(m/3);
+    return d.getFullYear()===y;
   });
-
-  const monthKey = v => {
-    if (!v) return null;
-    const d = new Date(v);
-    return isNaN(d) ? null : `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-  };
-
-  const byMonth = items => {
-    const map = {};
-    items.forEach(raw => {
-      const o = raw.Invoice||raw.Expense||raw.Income||raw;
-      const k = monthKey(o.date||o.issue_date||o.created||o.modified);
-      const v = parseFloat(o.total||o.net_total||o.amount||o.subtotal||o.grand_total||0);
-      if (k && v>0) map[k]=(map[k]||0)+v;
-    });
-    return months.map(m => Math.round((map[m]||0)/1000*10)/10);
-  };
-
-  const rev  = byMonth(invoices);
-  const exp2 = byMonth(expenses);
-  const inc2 = byMonth(incomes);
-  const revT = rev.map((r,i)=>Math.round((r+inc2[i])*10)/10);
-  const cogs = revT.map(r=>Math.round(r*0.55*10)/10);
-  const opex = exp2.map(e=>Math.round(e*0.60*10)/10);
-  const ga   = exp2.map(e=>Math.round(e*0.40*10)/10);
-  const ar   = revT.map(r=>Math.round(r*0.30*10)/10);
-  const ap   = exp2.map(e=>Math.round(e*0.25*10)/10);
-  let cash=500;
-  const cashA = revT.map((r,i)=>{
-    cash=Math.max(50, cash+r-exp2[i]);
-    return Math.round(cash*10)/10;
-  });
-  const emp = Array(12).fill(DEMO.emp[11]);
-  const totalRev = revT.reduce((a,b)=>a+b,0);
-  const totalExp = exp2.reduce((a,b)=>a+b,0);
-  return {
-    rev:revT,cogs,opex,ga,ar,ap,cash:cashA,emp,
-    hasData: totalRev>0||totalExp>0||invoices.length>0,
-    counts:{inv:invoices.length,exp:expenses.length},
-    months: revT.filter(v=>v>0).length,
-  };
-};
-
-// ── CALCS ──────────────────────────────────────────────────
-const pIdx = p=>p==="MTD"?[11]:p==="QTD"?[9,10,11]:Array.from({length:12},(_,i)=>i);
-const pArr = (arr,p)=>pIdx(p).map(i=>arr[i]||0);
-const pSum = (arr,p)=>pArr(arr,p).reduce((a,b)=>a+b,0);
-const fmt  = n=>new Intl.NumberFormat("ar-EG").format(Math.round(n));
-const fmtD = (n,d=1)=>new Intl.NumberFormat("ar-EG",{minimumFractionDigits:d,maximumFractionDigits:d}).format(n);
-
-const calcK = (period,D) => {
-  const r=pSum(D.rev,period),cg=pSum(D.cogs,period);
-  const ox=pSum(D.opex,period),ga=pSum(D.ga,period);
-  const gp=r-cg,op=gp-ox,eb=op-ga,tx=eb*.225,nt=eb-tx;
-  const cash=D.cash[D.cash.length-1]||0;
-  const ar=D.ar[D.ar.length-1]||0;
-  const ap=D.ap[D.ap.length-1]||0;
-  const emp=D.emp?D.emp[11]:50;
-  const bn=(pSum(D.opex,"YTD")+pSum(D.ga,"YTD"))/12||1;
-  const rw=bn>0?cash/(bn*.8):12;
-  const ca=cash+ar+480,cl=ap+280;
-  const fR=D.rev.reduce((a,b)=>a+b,0)||1;
-  const fC=D.cogs.reduce((a,b)=>a+b,0)||1;
-  const idx2=pIdx(period);
-  const prev=D.rev.slice(Math.max(0,idx2[0]-idx2.length),idx2[0]).reduce((a,b)=>a+b,0);
-  return {
-    r,cg,ox,ga,gp,op,eb,nt,tx,cash,ar,ap,emp,bn,rw,
-    gm:r>0?(gp/r)*100:0, nm:r>0?(nt/r)*100:0,
-    em:r>0?(eb/r)*100:0, xr:r>0?(ox/r)*100:0, gr:r>0?(ga/r)*100:0,
-    cr:ca/cl, qr:(cash+ar)/cl, wc:ca-cl,
-    dso:ar/(fR/365), dpo:ap/(fC/365),
-    grow:prev>0?((r-prev)/prev)*100:0,
-    revPerEmp:r>0?r*1000/emp:0,
-  };
-};
-
-// ── UI ─────────────────────────────────────────────────────
-const Bdg=({t,c=G.gold,sm})=>(
-  <span style={{display:"inline-block",padding:sm?"1px 6px":"2px 9px",borderRadius:20,background:c+"18",color:c,border:`1px solid ${c}30`,fontSize:sm?9:11,fontWeight:700}}>{t}</span>
-);
-const Hbar=({v,mx,c=G.gold,h=6})=>(
-  <div style={{height:h,background:G.sur2,borderRadius:3,overflow:"hidden",flex:1}}>
-    <div style={{height:"100%",width:`${Math.min((v/mx)*100,100)}%`,background:c,borderRadius:3}}/>
-  </div>
-);
-const Sp=({d,c,h=24,w=120})=>{
-  if(!d||!d.length)return null;
-  const mx=Math.max(...d),mn=Math.min(...d),rng=mx-mn||1;
-  const pts=d.map((v,i)=>`${(i/(d.length-1))*w},${h-((v-mn)/rng)*h}`).join(" ");
-  return <svg width={w} height={h} style={{overflow:"visible"}}>
-    <polyline points={`0,${h} ${pts} ${w},${h}`} fill={c+"22"}/>
-    <polyline points={pts} fill="none" stroke={c} strokeWidth="1.5"/>
-    <circle cx={w} cy={h-((d[d.length-1]-mn)/rng)*h} r="2.5" fill={c}/>
-  </svg>;
-};
-const Chart=({series,h=160,mons})=>{
-  const all=series.flatMap(s=>s.d);
-  const mx=Math.max(...all,1)*1.1;
-  const lp=d=>d.map((v,i)=>`${i===0?"M":"L"} ${40+i*(640/(d.length-1))},${18+(h-34)-(v/mx)*(h-34)}`).join(" ");
-  return <svg viewBox={`0 0 700 ${h}`} style={{width:"100%",height:h}}>
-    {[0,.5,1].map((p,i)=><line key={i} x1="40" x2="690" y1={18+(h-34)*p} y2={18+(h-34)*p} stroke={G.bdrS} strokeDasharray="3 5"/>)}
-    {[0,.5,1].map((p,i)=><text key={i} x="35" y={21+(h-34)*p} fill={G.txtF} fontSize="9" textAnchor="end">{fmt(mx*(1-p))}</text>)}
-    {series.map((s,i)=><path key={i} d={lp(s.d)} fill="none" stroke={s.c} strokeWidth="2.5" strokeDasharray={s.dash||"none"}/>)}
-    {mons&&mons.map((m,i)=><text key={i} x={40+i*(640/(mons.length-1))} y={h-2} fill={G.txtF} fontSize="9" textAnchor="middle">{m}</text>)}
-  </svg>;
-};
+}
 
 const NAV=[
-  {id:"dash",  icon:"◈",ar:"لوحة التحكم",   en:"Dashboard"},
-  {id:"rev",   icon:"▲",ar:"الإيرادات",     en:"Revenue"},
-  {id:"exp",   icon:"◎",ar:"المصاريف",      en:"Expenses"},
-  {id:"bud",   icon:"⊞",ar:"الميزانية",     en:"Budget"},
-  {id:"liq",   icon:"◆",ar:"السيولة",       en:"Liquidity"},
-  {id:"rep",   icon:"✦",ar:"التقارير",      en:"Reports"},
+  {id:"home",    icon:"◈",ar:"الرئيسية",      en:"Overview"},
+  {id:"pl",      icon:"▲",ar:"قائمة الدخل",   en:"P&L"},
+  {id:"ar",      icon:"◆",ar:"الذمم المدينة", en:"Receivables"},
+  {id:"ap",      icon:"◎",ar:"الذمم الدائنة", en:"Payables"},
+  {id:"treasury",icon:"💰",ar:"الخزينة",       en:"Treasury"},
+  {id:"reports", icon:"✦",ar:"التقارير",      en:"Reports"},
 ];
 
-const BUDGET=[
-  {ar:"الإيرادات",         en:"Revenue",     b:32000,a:33250,pos:true},
-  {ar:"تكلفة المبيعات",   en:"COGS",        b:18000,a:18770,pos:false},
-  {ar:"إجمالي الربح",     en:"Gross Profit",b:14000,a:14480,pos:true},
-  {ar:"مصاريف التشغيل",   en:"OpEx",        b:3500, a:3705, pos:false},
-  {ar:"المصاريف العمومية",en:"G&A",         b:2100, a:2245, pos:false},
-  {ar:"EBITDA",            en:"EBITDA",      b:8400, a:8530, pos:true},
-  {ar:"صافي الربح",       en:"Net Profit",  b:6500, a:6611, pos:true},
-];
-const AR_AGING=[
-  {ar:"0-30 يوم",en:"0-30 days",v:720,c:"#1A6B1A"},
-  {ar:"31-60 يوم",en:"31-60 days",v:410,c:"#1A5C8A"},
-  {ar:"61-90 يوم",en:"61-90 days",v:220,c:"#C07010"},
-  {ar:"91-120 يوم",en:"91-120 days",v:110,c:"#D4580A"},
-  {ar:"+120 يوم",en:"+120 days",v:50,c:"#B03020"},
-];
+const fmt  = n => isNaN(n)?"0":new Intl.NumberFormat("ar-EG").format(Math.round(n));
+const fmtD = (n,d=1) => isNaN(n)?"0":new Intl.NumberFormat("ar-EG",{minimumFractionDigits:d,maximumFractionDigits:d}).format(n);
+const el   = React.createElement;
 
+const Logo = ({size=30}) => el("svg",{width:size,height:size,viewBox:"0 0 48 48",style:{flexShrink:0}},
+  el("rect",{width:48,height:48,rx:11,fill:G.gold}),
+  el("path",{d:"M 33.19 14.81 A 13 13 0 1 0 33.19 33.19",fill:"none",stroke:"white",strokeWidth:"3.5",strokeLinecap:"round"}),
+  el("circle",{cx:"33.19",cy:"14.81",r:3,fill:"white"}),
+  el("circle",{cx:"33.19",cy:"33.19",r:3,fill:"white"}),
+  el("line",{x1:36,y1:"14.81",x2:43,y2:"14.81",stroke:"white",strokeWidth:"1.5",strokeDasharray:"2 2",opacity:.7}),
+  el("line",{x1:36,y1:"33.19",x2:43,y2:"33.19",stroke:"white",strokeWidth:"1.5",strokeDasharray:"2 2",opacity:.7}),
+  el("circle",{cx:"44.5",cy:24,r:2,fill:"white",opacity:.85})
+);
+
+// ══════════════════════════════════════════════════════════
 function App() {
-  const {mob,tab}=useScreen();
-  const [page,    setPage]    = useState("dash");
-  const [lang,    setLang]    = useState("AR");
-  const [money,   setMoney]   = useState(CURR[0]);
-  const [period,  setPeriod]  = useState("YTD");
-  const [showM,   setShowM]   = useState(false);
-  const [showConn,setShowConn]= useState(false);
-  const [conn,    setConn]    = useState({sub:"",key:"",status:"demo",token:""});
-  const [connMsg, setConnMsg] = useState("");
-  const [realData,setRealData]= useState(null);
-  const [loading, setLoading] = useState(false);
+  const [lang,   setLang]   = useState("AR");
+  const [money,  setMoney]  = useState(CURR[0]);
+  const [period, setPeriod] = useState("YTD");
+  const [page,   setPage]   = useState("home");
+  const [showM,  setShowM]  = useState(false);
+  const [width,  setWidth]  = useState(window.innerWidth);
+
+  // ── AUTH & DATA ─────────────────────────────────────────
+  // mode: "demo" | "loading" | "connected" | "error"
+  const [mode,      setMode]      = useState("demo");
+  const [data,      setData]      = useState(DEMO);   // demo data اللي يشوفها المستخدم
+  const [token,     setToken]     = useState(null);
+  const [tokenType, setTokenType] = useState("bearer");
+  const [subdomain, setSubdomain] = useState("");
+  const [lastSync,  setLastSync]  = useState(null);
+  const [loadMsg,   setLoadMsg]   = useState("");
+  const [fetchLog,  setFetchLog]  = useState([]);
+  const [toasts,    setToasts]    = useState([]);
+  const autoRef = useRef(null);
 
   const ar  = lang==="AR";
   const dir = ar?"rtl":"ltr";
   const SY  = ar?money.s:money.sE;
-  const UN  = ar?`ألف ${money.s}`:`K ${money.sE}`;
-  const D   = useMemo(()=>realData||DEMO,[realData]);
-  const k   = useMemo(()=>calcK(period,D),[period,D]);
-  const cRev= useMemo(()=>pArr(D.rev,period),[period,D]);
-  const cC  = useMemo(()=>pArr(D.cogs,period),[period,D]);
-  const cO  = useMemo(()=>pArr(D.opex,period),[period,D]);
-  const cG  = useMemo(()=>pArr(D.ga,period),[period,D]);
-  const prf = cRev.map((v,i)=>v-cC[i]-cO[i]-cG[i]);
-  const cMs = useMemo(()=>pIdx(period).map(i=>ar?MAR[i]:MEN[i]),[period,lang]);
+  const mob = width<640;
+  const tab = width>=640&&width<1024;
   const SW  = mob?0:tab?58:220;
 
-  // ── OAuth callback handler ───────────────────────────────
   useEffect(()=>{
+    const fn=()=>setWidth(window.innerWidth);
+    window.addEventListener("resize",fn);
+    return()=>window.removeEventListener("resize",fn);
+  },[]);
+
+  const toast = useCallback((msg,type="info")=>{
+    const id=Date.now();
+    setToasts(p=>[...p,{id,msg,type}]);
+    setTimeout(()=>setToasts(p=>p.filter(t=>t.id!==id)),3500);
+  },[]);
+
+  // ── FETCH ONE DAFTRA ENDPOINT ───────────────────────────
+  const fetchEndpoint = useCallback(async (endpoint)=>{
+    const p = new URLSearchParams({apikey:token, endpoint, token_type:tokenType});
+    if (subdomain) p.append("subdomain", subdomain);
+    const res = await fetch(`/api/daftra?${p}`);
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.message||json.error||`HTTP ${res.status}`);
+    return json;
+  },[token,tokenType,subdomain]);
+
+  // ══ LOAD REAL DATA ══════════════════════════════════════
+  // ⚠️ المنطق الأساسي: عند الاتصال نمسح Demo ونضع بيانات دفترة فقط
+  const loadRealData = useCallback(async ()=>{
+    if (!token) return;
+    setMode("loading");
+    setData(EMPTY);   // ← مسح فوري للـ Demo
+
+    const log=[];
+
+    async function fetchOne(label, endpoint, entityKey, mapFn) {
+      setLoadMsg(ar?`جاري جلب ${label}...`:`Loading ${label}...`);
+      try {
+        const raw   = await fetchEndpoint(endpoint);
+        const items = parseResp(raw, entityKey).map(mapFn);
+        log.push({label, count:items.length, ok:true});
+        return items;
+      } catch(e) {
+        log.push({label, count:0, ok:false, err:e.message});
+        console.error(`[CLink CFO] ${endpoint}:`, e.message);
+        return [];  // مصفوفة فارغة — مش Demo
+      }
+    }
+
+    const invoices         = await fetchOne(ar?"الفواتير":"Invoices",         "invoices",          "Invoices",         mapInv);
+    const expenses         = await fetchOne(ar?"المصروفات":"Expenses",         "expenses",          "Expenses",         mapExp);
+    const purchaseInvoices = await fetchOne(ar?"فواتير الشراء":"Purchases",    "purchase_invoices", "PurchaseInvoices", mapPur);
+    const clients          = await fetchOne(ar?"العملاء":"Clients",            "clients",           "Clients",          mapCli);
+    const suppliers        = await fetchOne(ar?"الموردون":"Suppliers",          "suppliers",         "Suppliers",        mapSup);
+    const treasuries       = await fetchOne(ar?"الخزينة":"Treasuries",         "treasuries",        "Treasuries",       mapTre);
+
+    // ← هنا نضع البيانات الحقيقية فقط بدون أي Demo
+    setData({ invoices, expenses, purchaseInvoices, clients, suppliers, treasuries });
+    setFetchLog(log);
+    setLastSync(new Date());
+    setLoadMsg("");
+
+    const ok  = log.filter(l=>l.ok).length;
+    const all = log.length;
+
+    if (ok===all) {
+      setMode("connected");
+      toast(ar?`✅ تم جلب ${invoices.length} فاتورة من دفترة`:`✅ Loaded ${invoices.length} invoices from Daftra`,"success");
+    } else if (ok>0) {
+      setMode("connected");
+      toast(ar?`⚠️ ${ok}/${all} مصادر — بعض البيانات غير متاحة`:`⚠️ ${ok}/${all} sources loaded`,"warn");
+    } else {
+      setMode("error");
+      setData(EMPTY); // نبقى فارغ مش Demo
+      toast(ar?"❌ فشل جلب البيانات — تحقق من الصلاحيات":"❌ Failed to load data","error");
+    }
+  },[token,ar,fetchEndpoint,toast]);
+
+  // ── READ URL PARAMS ON MOUNT ─────────────────────────────
+  useEffect(()=>{
+    // استرجاع الجلسة
+    try {
+      const saved=sessionStorage.getItem("clink_cfo_v4");
+      if (saved) {
+        const s=JSON.parse(saved);
+        if (s.token) { setToken(s.token); setTokenType(s.tt||"bearer"); setSubdomain(s.sd||""); return; }
+      }
+    } catch {}
     const params=new URLSearchParams(window.location.search);
     const auth=params.get("auth");
-    if(auth==="success"||auth==="code"){
-      const token=params.get("token")||params.get("code");
-      const sub=params.get("subdomain")||"";
-      if(token){
-        DAFTRA.save(token,sub);
-        setConn(c=>({...c,status:"connected",token,sub}));
+    if (auth==="success") {
+      const tk=params.get("token")||"";
+      const tt=(params.get("token_type")||"bearer").toLowerCase();
+      const sd=params.get("subdomain")||"";
+      if (tk) {
+        setToken(tk); setTokenType(tt); setSubdomain(sd);
+        sessionStorage.setItem("clink_cfo_v4",JSON.stringify({token:tk,tt,sd}));
         window.history.replaceState({},"","/");
-        setTimeout(()=>doFetch(token,sub),800);
       }
-    } else if(auth==="error"){
-      setConnMsg(ar?`❌ فشل: ${params.get("reason")||""}`:`❌ Failed: ${params.get("reason")||""}`);
+    } else if (auth==="error") {
+      setMode("error");
+      const reason=params.get("reason")||"unknown";
+      toast(ar?`❌ فشل الاتصال: ${reason}`:`❌ Failed: ${reason}`,"error");
       window.history.replaceState({},"","/");
-    }
-    const t=DAFTRA.getToken(), s=DAFTRA.getSub();
-    if(t&&!auth){
-      setConn(c=>({...c,status:"connected",token:t,sub:s||""}));
-      setTimeout(()=>doFetch(t,s||""),600);
     }
   },[]);
 
-  // ── Fetch real data ──────────────────────────────────────
-  const doFetch=async(token,sub)=>{
-    if(!token)return;
-    setLoading(true);
-    try{
-      const fin=await DAFTRA.fetchAll(token,sub);
-      console.log("Daftra fetched:",fin.invoices.length,"inv,",fin.expenses.length,"exp");
-      const rd=buildRealData(fin.invoices,fin.expenses,fin.incomes);
-      if(rd.hasData){
-        setRealData(rd);
-        setConnMsg(ar?`✅ ${rd.counts.inv} فاتورة | ${rd.counts.exp} مصروف`:`✅ ${rd.counts.inv} invoices | ${rd.counts.exp} expenses`);
-      } else {
-        setConnMsg(ar?"⚠️ لا توجد بيانات مالية في الفترة الحالية":"⚠️ No financial data in current period");
-      }
-    }catch(e){
-      setConnMsg(ar?`❌ ${e.message}`:`❌ ${e.message}`);
-    }finally{
-      setLoading(false);
-    }
-  };
+  // ── TRIGGER LOAD WHEN TOKEN READY ───────────────────────
+  useEffect(()=>{ if(token) loadRealData(); },[token]);
 
-  const connectOAuth=()=>DAFTRA.startOAuth();
-  const connectKey=async()=>{
-    if(!conn.sub||!conn.key){setConnMsg(ar?"أدخل البيانات":"Enter credentials");return;}
-    setConn(c=>({...c,status:"connecting"}));
-    DAFTRA.save(conn.key,conn.sub);
-    setConn(c=>({...c,status:"connected",token:conn.key}));
-    setShowConn(false);
-    await doFetch(conn.key,conn.sub);
-  };
+  // ── AUTO REFRESH 5 MIN ───────────────────────────────────
+  useEffect(()=>{
+    clearInterval(autoRef.current);
+    if (token&&mode==="connected") autoRef.current=setInterval(loadRealData,5*60*1000);
+    return()=>clearInterval(autoRef.current);
+  },[token,mode,loadRealData]);
+
+  // ── DISCONNECT ───────────────────────────────────────────
   const disconnect=()=>{
-    DAFTRA.clear();
-    setConn({sub:"",key:"",status:"demo",token:""});
-    setRealData(null);
-    setConnMsg("");
+    clearInterval(autoRef.current);
+    sessionStorage.removeItem("clink_cfo_v4");
+    setToken(null); setSubdomain(""); setMode("demo");
+    setData(DEMO); setFetchLog([]);  // ← نرجع Demo عند قطع الاتصال
+    toast(ar?"تم قطع الاتصال — وضع تجريبي":"Disconnected — Demo mode","info");
   };
 
-  const doExcel=()=>{
-    const rows=BUDGET.map(r=>{const v=r.a-r.b;return[(ar?r.ar:r.en),r.b,r.a,v,((v/r.b)*100).toFixed(1)+"%"].join(",");});
-    const csv=["Item,Budget,Actual,Variance,Var%",...rows].join("\n");
+  const loginDaftra=()=>{
+    const rd=encodeURIComponent(window.location.origin+"/callback");
+    window.location.href=`https://app.daftra.com/oauth/authorize?client_id=565&redirect_uri=${rd}&response_type=code`;
+  };
+
+  // ── KPIs ─────────────────────────────────────────────────
+  const fd = useMemo(()=>({
+    invoices:         byPeriod(data.invoices,         period),
+    expenses:         byPeriod(data.expenses,         period),
+    purchaseInvoices: byPeriod(data.purchaseInvoices, period),
+  }),[data,period]);
+
+  const kpi = useMemo(()=>{
+    const rev  = fd.invoices.reduce((s,i)=>s+i.amount,0);
+    const paid = fd.invoices.reduce((s,i)=>s+i.paid,0);
+    const exp  = fd.expenses.reduce((s,e)=>s+e.amount,0);
+    const pur  = fd.purchaseInvoices.reduce((s,p)=>s+p.amount,0);
+    const purPaid = fd.purchaseInvoices.reduce((s,p)=>s+p.paid,0);
+    const gp   = rev-pur, np=gp-exp;
+    const cash = data.treasuries.reduce((s,t)=>s+(t.currency==="EGP"?t.balance:t.balance*50),0);
+    const ovAR = data.clients.reduce((s,c)=>s+(c.overdue||0),0);
+    const ovAP = data.suppliers.reduce((s,s2)=>s+(s2.overdue||0),0);
+    return {
+      rev, paid, ar_bal:rev-paid,
+      exp, pur, ap_bal:pur-purPaid,
+      gp, np,
+      gm:rev>0?(gp/rev)*100:0,
+      nm:rev>0?(np/rev)*100:0,
+      coll:rev>0?(paid/rev)*100:0,
+      cash, ovAR, ovAP,
+      invCount:fd.invoices.length,
+    };
+  },[fd,data]);
+
+  const exportCSV=()=>{
+    const rows=[
+      [ar?"المؤشر":"KPI",ar?"القيمة":"Value"],
+      [ar?"إجمالي الإيرادات":"Revenue",   `${fmt(kpi.rev)} ${SY}`],
+      [ar?"إجمالي الربح":"Gross Profit",  `${fmt(kpi.gp)} ${SY}`],
+      [ar?"صافي الربح":"Net Profit",      `${fmt(kpi.np)} ${SY}`],
+      [ar?"هامش إجمالي":"Gross Margin",   `${fmtD(kpi.gm)}%`],
+      [ar?"هامش صافي":"Net Margin",       `${fmtD(kpi.nm)}%`],
+      [ar?"الذمم المدينة":"AR",            `${fmt(kpi.ar_bal)} ${SY}`],
+      [ar?"الذمم الدائنة":"AP",            `${fmt(kpi.ap_bal)} ${SY}`],
+      [ar?"الخزينة":"Cash",               `${fmt(kpi.cash)} ${SY}`],
+      [ar?"نسبة التحصيل":"Collection",    `${fmtD(kpi.coll)}%`],
+    ];
+    const csv="\uFEFF"+rows.map(r=>r.join(",")).join("\n");
     const a=document.createElement("a");
-    a.href=URL.createObjectURL(new Blob(["\uFEFF"+csv],{type:"text/csv"}));
-    a.download="CLink_CFO.csv";a.click();
+    a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));
+    a.download=`CLink_CFO_${mode==="connected"?"LIVE":"DEMO"}_${period}.csv`;
+    a.click();
+    toast(ar?"✅ تم تصدير Excel":"✅ Excel exported","success");
   };
 
-  // ── KPI Card ─────────────────────────────────────────────
-  const KPI=({label,val,sub,trend,sp,c})=>(
-    <div style={{background:"white",border:`1px solid ${G.bdr}`,borderTop:`3px solid ${c}`,borderRadius:14,padding:"13px 15px",boxShadow:G.shd||"0 2px 12px rgba(200,168,75,0.12)"}}>
-      <div style={{display:"flex",justifyContent:"space-between",marginBottom:5}}>
-        <div style={{fontSize:10,color:G.txtF,fontWeight:600,flex:1,lineHeight:1.3}}>{label}</div>
-        {trend!==undefined&&<Bdg t={(trend>=0?"▲":"▼")+fmtD(Math.abs(trend))+"%"} c={trend>=0?G.pos:G.neg} sm/>}
-      </div>
-      <div style={{fontSize:mob?15:20,fontWeight:800,color:c,marginBottom:2}}>{val}</div>
-      {sub&&<div style={{fontSize:10,color:G.txtF,marginBottom:4}}>{sub}</div>}
-      {sp&&<Sp d={sp} c={c} w={mob?90:120}/>}
-    </div>
+  // ── MINI COMPONENTS ─────────────────────────────────────
+  const Bdg=({t,c=G.gold,sm})=>el("span",{style:{display:"inline-block",padding:sm?"1px 6px":"2px 9px",borderRadius:20,background:c+"18",color:c,border:`1px solid ${c}30`,fontSize:sm?9:11,fontWeight:700}},t);
+  const Hbar=({v,mx,c=G.gold,h=6})=>el("div",{style:{height:h,background:G.sur2,borderRadius:3,overflow:"hidden",flex:1}},el("div",{style:{height:"100%",width:`${Math.min((v/(mx||1))*100,100)}%`,background:c,borderRadius:3,transition:"width .5s"}}));
+  const Card=({label,val,sub,c,icon})=>el("div",{style:{background:"white",border:`1px solid ${G.bdr}`,borderTop:`3px solid ${c}`,borderRadius:14,padding:"13px 15px",boxShadow:G.shd,animation:"fadeIn .4s"}},
+    el("div",{style:{fontSize:10,color:G.txtF,fontWeight:600,marginBottom:5}},icon&&icon+" ",label),
+    el("div",{style:{fontSize:mob?15:20,fontWeight:800,color:c,marginBottom:2}},val),
+    sub&&el("div",{style:{fontSize:10,color:G.txtF}},sub));
+  const Empty=({msg})=>el("div",{style:{textAlign:"center",padding:"40px 20px",color:G.txtF}},
+    el("div",{style:{fontSize:36,marginBottom:10}},"📭"),
+    el("div",{style:{fontSize:13,fontWeight:700,color:G.txtD,marginBottom:4}},ar?"لا توجد بيانات":"No data"),
+    el("div",{style:{fontSize:11}},msg||(ar?"اتصل بدفترة لعرض بياناتك":"Connect Daftra to see your data")));
+  const TH=({h})=>el("th",{style:{textAlign:ar?"right":"left",padding:"7px 10px",fontSize:10,color:G.txtF,borderBottom:`2px solid ${G.bdr}`,fontWeight:700}},h);
+  const TD=({children,c,bold,sm})=>el("td",{style:{padding:"7px 10px",fontSize:sm?9:11,color:c||G.txt,fontWeight:bold?700:400,borderBottom:`1px solid ${G.bdrS}`}},children);
+
+  // ── LOADING OVERLAY ──────────────────────────────────────
+  const LoadingOverlay=()=>el("div",{style:{position:"fixed",inset:0,background:"rgba(255,253,247,0.96)",zIndex:999,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",gap:20}},
+    el(Logo,{size:56}),
+    el("div",{style:{width:46,height:46,border:`4px solid ${G.bdrS}`,borderTop:`4px solid ${G.gold}`,borderRadius:"50%",animation:"spin 1s linear infinite"}}),
+    el("div",{style:{fontSize:15,fontWeight:700,color:G.goldD,textAlign:"center"}},ar?"جاري جلب بياناتك من دفترة...":"Loading your data from Daftra..."),
+    loadMsg&&el("div",{style:{fontSize:11,color:G.txtF,maxWidth:260,textAlign:"center",marginTop:-8}},loadMsg)
   );
 
-  // ── Sidebar ───────────────────────────────────────────────
-  const Sidebar=()=>(
-    <div style={{width:SW,position:"fixed",top:0,[ar?"right":"left"]:0,bottom:0,background:"white",zIndex:20,borderLeft:ar?`1px solid ${G.bdr}`:"none",borderRight:!ar?`1px solid ${G.bdr}`:"none",display:"flex",flexDirection:"column"}}>
-      <div style={{padding:tab?"10px 6px":"12px 14px",borderBottom:`1px solid ${G.bdrS}`}}>
-        <svg width={tab?32:26} height={tab?32:26} viewBox="0 0 48 48">
-          <rect width="48" height="48" rx="11" fill={G.gold}/>
-          <path d="M 33.19 14.81 A 13 13 0 1 0 33.19 33.19" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round"/>
-          <circle cx="33.19" cy="14.81" r="3" fill="white"/><circle cx="33.19" cy="33.19" r="3" fill="white"/>
-          <line x1="36" y1="14.81" x2="43" y2="14.81" stroke="white" strokeWidth="1.5" strokeDasharray="2 2" opacity=".7"/>
-          <line x1="36" y1="33.19" x2="43" y2="33.19" stroke="white" strokeWidth="1.5" strokeDasharray="2 2" opacity=".7"/>
-          <circle cx="44.5" cy="24" r="2" fill="white" opacity=".85"/>
-        </svg>
-        {!tab&&<div style={{marginTop:6}}><div style={{fontSize:14,fontWeight:900,color:G.goldD,lineHeight:1,fontFamily:"Georgia,serif"}}>CLink<span style={{color:G.gold}}>·</span></div><div style={{fontSize:8,color:G.gold,letterSpacing:2,fontWeight:700}}>CFO DASHBOARD</div></div>}
-      </div>
-      <nav style={{flex:1,padding:tab?"8px 4px":"10px 8px",overflowY:"auto"}}>
-        {NAV.map(n=>(
-          <div key={n.id} onClick={()=>setPage(n.id)} style={{display:"flex",alignItems:"center",gap:tab?0:8,justifyContent:tab?"center":"flex-start",padding:tab?"10px":"8px 10px",borderRadius:8,marginBottom:2,cursor:"pointer",background:page===n.id?G.goldP:"transparent",border:`1px solid ${page===n.id?G.gold+"50":"transparent"}`,color:page===n.id?G.gold:G.txtF,fontWeight:page===n.id?700:400,fontSize:12}}>
-            <span style={{fontSize:14}}>{n.icon}</span>
-            {!tab&&<span>{ar?n.ar:n.en}</span>}
-          </div>
-        ))}
-      </nav>
-      {!tab&&<div style={{padding:"8px 12px",borderTop:`1px solid ${G.bdrS}`,fontSize:9,color:G.txtF}}>IFRS • {UN}</div>}
-    </div>
+  // ── CONN BAR ─────────────────────────────────────────────
+  const ConnBar=()=>{
+    const isDemo=mode==="demo";
+    const tc=mode==="connected"?G.pos:isDemo?G.wrn:G.neg;
+    return el("div",{className:"np",style:{padding:"9px 16px",background:tc+"12",borderBottom:`1px solid ${tc}25`,display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:8}},
+      el("div",{style:{display:"flex",alignItems:"center",gap:8}},
+        el("div",{style:{width:9,height:9,borderRadius:"50%",background:tc,flexShrink:0}}),
+        el("div",null,
+          el("div",{style:{fontSize:11,fontWeight:700,color:tc}},
+            mode==="connected"?(ar?"✅ متصل بدفترة — بياناتك الحقيقية":"✅ Connected — Your Live Daftra Data")
+            :mode==="loading"?(ar?"⏳ جاري الاتصال...":"⏳ Connecting...")
+            :mode==="error"?(ar?"❌ خطأ في الاتصال":"❌ Connection error")
+            :(ar?"🔷 وضع تجريبي — بيانات افتراضية وليست بياناتك":"🔷 Demo Mode — Sample data, not yours")),
+          mode==="connected"&&el("div",{style:{fontSize:9,color:G.txtF,marginTop:1}},
+            (subdomain?subdomain+" | ":"")+(ar?`آخر تحديث: ${lastSync?.toLocaleTimeString("ar-EG")}`:`Last sync: ${lastSync?.toLocaleTimeString("en")}`)),
+          isDemo&&el("div",{style:{fontSize:9,color:G.wrn,marginTop:1}},
+            ar?"اضغط تسجيل الدخول بدفترة لعرض أرقامك الحقيقية":"Click Connect to see your real figures")
+        )
+      ),
+      el("div",{style:{display:"flex",gap:8}},
+        mode==="connected"
+          ?el(React.Fragment,null,
+              el("button",{onClick:loadRealData,style:{padding:"5px 12px",borderRadius:7,border:`1px solid ${G.gold}`,background:G.goldL,color:G.goldD,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}},ar?"🔄 تحديث":"🔄 Refresh"),
+              el("button",{onClick:disconnect,style:{padding:"5px 12px",borderRadius:7,border:`1px solid ${G.neg}40`,background:G.neg+"10",color:G.neg,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}},ar?"⏏ قطع":"⏏ Disconnect")
+            )
+          :el("button",{onClick:loginDaftra,style:{padding:"7px 18px",borderRadius:8,border:"none",background:G.gold,color:"white",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit",boxShadow:`0 2px 10px ${G.gold}60`}},
+              ar?"🔗 تسجيل دخول بدفترة":"🔗 Connect Daftra")
+      )
+    );
+  };
+
+  // ── SIDEBAR ──────────────────────────────────────────────
+  const Sidebar=()=>el("div",{className:"np",style:{width:SW,position:"fixed",top:0,[ar?"right":"left"]:0,bottom:0,background:"white",zIndex:20,borderLeft:ar?`1px solid ${G.bdr}`:"none",borderRight:!ar?`1px solid ${G.bdr}`:"none",display:"flex",flexDirection:"column",boxShadow:G.shd}},
+    el("div",{style:{padding:tab?"10px 6px":"12px 14px",borderBottom:`1px solid ${G.bdrS}`,display:"flex",alignItems:"center",gap:8}},
+      el(Logo,{size:tab?32:28}),
+      !tab&&el("div",null,
+        el("div",{style:{fontSize:13,fontWeight:900,color:G.goldD,lineHeight:1,fontFamily:"Georgia,serif"}},"CLink",el("span",{style:{color:G.gold}},"·")),
+        el("div",{style:{fontSize:7,color:G.gold,letterSpacing:2,fontWeight:700,textTransform:"uppercase",marginTop:1}},"CFO Dashboard")
+      )
+    ),
+    !tab&&el("div",{style:{margin:"8px 10px 0",padding:"5px 10px",borderRadius:7,background:mode==="connected"?G.pos+"12":G.wrn+"12",textAlign:"center"}},
+      el("div",{style:{fontSize:9,fontWeight:800,color:mode==="connected"?G.pos:G.wrn}},
+        mode==="connected"?(ar?"🟢 بيانات حقيقية":"🟢 Live Data"):(ar?"🟡 وضع تجريبي":"🟡 Demo Mode"))
+    ),
+    el("nav",{style:{flex:1,padding:tab?"8px 4px":"10px 8px",overflowY:"auto",marginTop:4}},
+      NAV.map(n=>el("div",{key:n.id,onClick:()=>setPage(n.id),style:{display:"flex",alignItems:"center",gap:tab?0:8,justifyContent:tab?"center":"flex-start",padding:tab?"10px":"8px 10px",borderRadius:8,marginBottom:2,cursor:"pointer",background:page===n.id?G.goldP:"transparent",border:`1px solid ${page===n.id?G.gold+"50":"transparent"}`,color:page===n.id?G.gold:G.txtF,fontWeight:page===n.id?700:400,fontSize:12}},
+        el("span",{style:{fontSize:14,flexShrink:0}},n.icon),
+        !tab&&el("span",null,ar?n.ar:n.en)
+      ))
+    ),
+    !tab&&el("div",{style:{padding:"8px 12px",borderTop:`1px solid ${G.bdrS}`,fontSize:9,color:G.txtF}},"InvestorProHub | CFO v4.0")
   );
 
-  const BottomNav=()=>(
-    <div style={{position:"fixed",bottom:0,left:0,right:0,background:"white",borderTop:`1px solid ${G.bdr}`,display:"flex",zIndex:20}}>
-      {NAV.map(n=>(
-        <div key={n.id} onClick={()=>setPage(n.id)} style={{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"5px 2px",cursor:"pointer",color:page===n.id?G.gold:G.txtF,borderTop:`2px solid ${page===n.id?G.gold:"transparent"}`,background:page===n.id?G.goldP:"transparent"}}>
-          <span style={{fontSize:13,marginBottom:1}}>{n.icon}</span>
-          <span style={{fontSize:7,fontWeight:page===n.id?700:400}}>{(ar?n.ar:n.en).split(" ")[0]}</span>
-        </div>
-      ))}
-    </div>
+  const BottomNav=()=>el("div",{className:"np",style:{position:"fixed",bottom:0,left:0,right:0,background:"white",borderTop:`1px solid ${G.bdr}`,display:"flex",zIndex:20}},
+    NAV.map(n=>el("div",{key:n.id,onClick:()=>setPage(n.id),style:{flex:1,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"5px 2px",cursor:"pointer",color:page===n.id?G.gold:G.txtF,borderTop:`2px solid ${page===n.id?G.gold:"transparent"}`,background:page===n.id?G.goldP:"transparent"}},
+      el("span",{style:{fontSize:13,marginBottom:1}},n.icon),
+      el("span",{style:{fontSize:7,fontWeight:page===n.id?700:400}},(ar?n.ar:n.en).split(" ")[0])
+    ))
   );
 
-  // ── DASHBOARD ─────────────────────────────────────────────
-  const Dash=()=>(
-    <div>
-      <div style={{background:`linear-gradient(135deg,${G.gold},${G.goldD})`,borderRadius:12,padding:"14px 18px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center",boxShadow:`0 4px 20px ${G.gold}50`}}>
-        <div>
-          <div style={{fontSize:11,color:"rgba(255,255,255,0.85)",fontWeight:600}}>{ar?"فترة الاستمرارية النقدية":"Cash Runway"}</div>
-          <div style={{fontSize:mob?24:34,fontWeight:900,color:"white",lineHeight:1.1}}>{fmtD(k.rw,1)} <span style={{fontSize:14,opacity:.85}}>{ar?"أشهر":"months"}</span></div>
-          <div style={{fontSize:10,color:"rgba(255,255,255,0.7)",marginTop:3}}>{ar?"معدل الإنفاق:":"Burn:"} {fmt(k.bn*1000)} {SY}</div>
-        </div>
-        <div style={{textAlign:"center",background:"rgba(255,255,255,0.15)",borderRadius:10,padding:"10px 16px"}}>
-          <div style={{fontSize:10,color:"rgba(255,255,255,0.8)"}}>{ar?"النقدية":"Cash"}</div>
-          <div style={{fontSize:20,fontWeight:800,color:"white"}}>{fmt(k.cash*1000)}</div>
-          <div style={{fontSize:9,color:"rgba(255,255,255,0.7)"}}>{UN}</div>
-        </div>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:mob?"1fr 1fr":"repeat(4,1fr)",gap:12,marginBottom:14}}>
-        <KPI label={ar?"إجمالي الإيرادات":"Total Revenue"} val={`${fmt(k.r*1000)} ${SY}`}  sub={`${period} | GM ${fmtD(k.gm)}%`} trend={k.grow} sp={cRev} c={G.inf}/>
-        <KPI label={ar?"إجمالي الربح":"Gross Profit"}      val={`${fmt(k.gp*1000)} ${SY}`} sub={`GM: ${fmtD(k.gm)}%`}           trend={6.4}    sp={cRev.map((v,i)=>v-cC[i])} c={G.pos}/>
-        <KPI label={ar?"صافي الربح":"Net Profit"}          val={`${fmt(k.nt*1000)} ${SY}`} sub={`NM: ${fmtD(k.nm)}%`}           trend={5.2}    sp={prf} c={G.gold}/>
-        <KPI label="EBITDA"                                  val={`${fmt(k.eb*1000)} ${SY}`} sub={`EM: ${fmtD(k.em)}%`}           trend={4.8}    sp={prf} c={G.pur}/>
-      </div>
-      <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"2fr 1fr",gap:14}}>
-        <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px"}}>
-          <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>◈ {ar?"الإيرادات وصافي الربح":"Revenue & Net Profit"}</div>
-          <Chart series={[{d:cRev,c:G.inf},{d:prf,c:G.pos,dash:"5 3"}]} h={mob?130:170} mons={cMs}/>
-          <div style={{display:"flex",gap:14,marginTop:6,justifyContent:"center"}}>
-            {[[G.inf,ar?"الإيراد":"Revenue"],[G.pos,ar?"صافي الربح":"Net Profit"]].map(([c,l])=>(
-              <div key={l} style={{display:"flex",alignItems:"center",gap:5}}><div style={{width:14,height:2,background:c}}/><span style={{fontSize:10,color:G.txtD}}>{l}</span></div>
-            ))}
-          </div>
-        </div>
-        <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px"}}>
-          <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>◎ {ar?"قائمة الدخل":"P&L"}</div>
-          {[
-            {l:ar?"الإيرادات":"Revenue",       v:k.r,   c:G.inf,  b:true},
-            {l:"(−) COGS",                      v:-k.cg, c:G.neg},
-            {l:ar?"إجمالي الربح":"Gross Profit",v:k.gp,  c:G.pos,  b:true,d:true,s:`${fmtD(k.gm)}%`},
-            {l:"(−) OpEx+G&A",                  v:-(k.ox+k.ga),c:G.wrn},
-            {l:"EBITDA",                         v:k.eb,  c:G.inf,  b:true,d:true,s:`${fmtD(k.em)}%`},
-            {l:"(−) Tax 22.5%",                 v:-k.tx, c:G.neg},
-            {l:ar?"صافي الربح":"Net Profit",   v:k.nt,  c:G.pos,  b:true,big:true,s:`${fmtD(k.nm)}%`},
-          ].map(({l,v,c,b,d,s,big},i)=>(
-            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:big?"9px 0 2px":"4px 0",borderBottom:d||big?`1px solid ${G.bdr}`:`1px solid ${G.bdrS}`,borderTop:big?`2px solid ${G.bdr}`:"none",marginTop:big?4:0}}>
-              <span style={{fontSize:big?11:9,color:b?G.txt:G.txtD,fontWeight:b?700:400}}>{l}</span>
-              <div style={{display:"flex",alignItems:"baseline",gap:3}}>
-                {s&&<span style={{fontSize:8,color:G.txtF}}>{s}</span>}
-                <span style={{fontSize:big?13:10,fontWeight:b?800:600,color:c}}>{v<0?"(":""}{fmt(Math.abs(v))}{v<0?")":""}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+  const Toasts=()=>el("div",{style:{position:"fixed",[ar?"left":"right"]:16,bottom:mob?80:16,zIndex:9999,display:"flex",flexDirection:"column",gap:8}},
+    toasts.map(t=>el("div",{key:t.id,style:{padding:"10px 16px",borderRadius:10,fontSize:12,fontWeight:700,maxWidth:300,background:t.type==="success"?G.pos:t.type==="error"?G.neg:t.type==="warn"?G.wrn:G.gold,color:"white",boxShadow:"0 4px 16px rgba(0,0,0,0.2)",animation:"fadeIn .3s"}},t.msg))
   );
 
-  // ── EXPENSES ─────────────────────────────────────────────
-  const Exp=()=>(
-    <div>
-      <div style={{display:"grid",gridTemplateColumns:mob?"1fr 1fr":"repeat(4,1fr)",gap:12,marginBottom:14}}>
-        {[
-          ["COGS",`${fmt(k.cg*1000)} ${SY}`,`${fmtD(100-k.gm)}%`,G.neg],
-          [ar?"مصاريف التشغيل":"OpEx",`${fmt(k.ox*1000)} ${SY}`,`${fmtD(k.xr)}%`,G.wrn],
-          [ar?"المصاريف العمومية":"G&A",`${fmt(k.ga*1000)} ${SY}`,`${fmtD(k.gr)}%`,G.pur],
-          [ar?"إجمالي OpEx+G&A":"Total OpEx+G&A",`${fmt((k.ox+k.ga)*1000)} ${SY}`,`${fmtD(k.xr+k.gr)}%`,G.gold],
-        ].map(([l,v,r,c],i)=>(
-          <div key={i} style={{background:"white",border:`1px solid ${G.bdr}`,borderRight:ar?`4px solid ${c}`:"none",borderLeft:!ar?`4px solid ${c}`:"none",borderRadius:"4px 14px 14px 4px",padding:"13px 15px"}}>
-            <div style={{fontSize:10,color:G.txtF,fontWeight:600,marginBottom:4}}>{l}</div>
-            <div style={{fontSize:mob?14:18,fontWeight:800,color:c}}>{v}</div>
-            <div style={{display:"flex",justifyContent:"space-between",marginTop:3}}>
-              <span style={{fontSize:9,color:G.txtF}}>{ar?"% من الإيراد":"% of Revenue"}</span>
-              <span style={{fontSize:10,color:c,fontWeight:700}}>{r}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px"}}>
-        <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>◈ {ar?"اتجاه المصاريف":"Expense Trend"}</div>
-        <Chart series={[{d:cO,c:G.wrn},{d:cG,c:G.pur}]} h={mob?130:170} mons={cMs}/>
-      </div>
-    </div>
+  const Header=()=>el("div",{className:"np",style:{padding:"10px 16px",borderBottom:`1px solid ${G.bdrS}`,background:"white",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}},
+    el("h1",{style:{fontSize:mob?13:16,fontWeight:800,color:G.txt,margin:0}},NAV.find(n=>n.id===page)?.[ar?"ar":"en"]),
+    el("div",{style:{display:"flex",gap:6,alignItems:"center",flexWrap:"wrap"}},
+      el("div",{style:{display:"flex",borderRadius:8,overflow:"hidden",border:`1px solid ${G.bdr}`}},
+        ["MTD","QTD","YTD"].map(p=>el("button",{key:p,onClick:()=>setPeriod(p),style:{padding:"5px 10px",border:"none",background:period===p?G.gold:"transparent",color:period===p?"white":G.txtF,fontSize:10,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}},p))
+      ),
+      el("div",{style:{display:"flex",borderRadius:8,overflow:"hidden",border:`1px solid ${G.bdr}`}},
+        ["AR","EN"].map(l=>el("button",{key:l,onClick:()=>setLang(l),style:{padding:"5px 10px",border:"none",background:lang===l?G.gold:"transparent",color:lang===l?"white":G.txtF,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}},l))
+      ),
+      el("div",{style:{position:"relative"}},
+        el("button",{onClick:()=>setShowM(v=>!v),style:{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",borderRadius:8,border:`1.5px solid ${G.gold}`,background:"white",color:G.goldD,fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}},
+          money.f," ",ar?money.s:money.sE," ",el("span",{style:{fontSize:8}},showM?"▲":"▼")),
+        showM&&el("div",{style:{position:"absolute",top:"calc(100% + 6px)",[ar?"left":"right"]:0,background:"white",border:`1px solid ${G.bdr}`,borderRadius:10,boxShadow:"0 8px 24px rgba(0,0,0,0.12)",zIndex:999,width:200,overflow:"hidden"}},
+          CURR.map(c=>el("div",{key:c.code,onClick:()=>{setMoney(c);setShowM(false);},style:{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",cursor:"pointer",background:money.code===c.code?G.goldP:"transparent",borderBottom:`1px solid ${G.bdrS}`}},
+            el("span",{style:{fontSize:18}},c.f),
+            el("div",{style:{flex:1}},el("div",{style:{fontSize:11,fontWeight:700,color:G.txt}},ar?c.n:c.nE),el("div",{style:{fontSize:9,color:G.txtF}},c.sE)),
+            money.code===c.code&&el("span",{style:{color:G.gold}},"✓")
+          ))
+        )
+      )
+    )
   );
 
-  // ── BUDGET ───────────────────────────────────────────────
-  const Bud=()=>(
-    <div>
-      <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px"}}>
-        <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>⊞ {ar?"المخطط مقابل الفعلي":"Budget vs Actual"} — {UN}</div>
-        <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",minWidth:460}}>
-            <thead><tr>
-              {[ar?"البند":"Item",ar?"المخطط":"Budget",ar?"الفعلي":"Actual",ar?"الانحراف":"Variance",ar?"الحالة":"Status"].map(h=>(
-                <th key={h} style={{textAlign:ar?"right":"left",padding:"8px 12px",fontSize:11,color:G.txtF,borderBottom:`2px solid ${G.bdr}`,fontWeight:700}}>{h}</th>
-              ))}
-            </tr></thead>
-            <tbody>
-              {BUDGET.map((row,i)=>{
-                const v=row.a-row.b,fav=row.pos?v>=0:v<=0;
-                return <tr key={i} style={{background:i%2===0?G.sur:"white"}}>
-                  <td style={{padding:"9px 12px",fontSize:12,fontWeight:700,color:G.txt,borderBottom:`1px solid ${G.bdrS}`}}>{ar?row.ar:row.en}</td>
-                  <td style={{padding:"9px 12px",fontSize:12,color:G.txtD,borderBottom:`1px solid ${G.bdrS}`}}>{fmt(row.b)}</td>
-                  <td style={{padding:"9px 12px",fontSize:12,color:G.gold,fontWeight:700,borderBottom:`1px solid ${G.bdrS}`}}>{fmt(row.a)}</td>
-                  <td style={{padding:"9px 12px",fontSize:12,color:fav?G.pos:G.neg,fontWeight:700,borderBottom:`1px solid ${G.bdrS}`}}>{v>=0?"+":""}{fmt(v)}</td>
-                  <td style={{padding:"9px 12px",borderBottom:`1px solid ${G.bdrS}`}}><Bdg t={fav?(ar?"إيجابي ✓":"Fav"):( ar?"سلبي ✗":"Unfav")} c={fav?G.pos:G.neg} sm/></td>
-                </tr>;
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+  // ══ PAGE: HOME ═══════════════════════════════════════════
+  const PageHome=()=>el("div",{style:{animation:"fadeIn .4s"}},
+    // Hero
+    el("div",{style:{background:`linear-gradient(135deg,${G.gold},${G.goldD})`,borderRadius:14,padding:"16px 20px",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center",boxShadow:`0 4px 20px ${G.gold}50`,flexWrap:"wrap",gap:12}},
+      el("div",null,
+        el("div",{style:{fontSize:10,color:"rgba(255,255,255,.85)",fontWeight:600,marginBottom:4}},
+          `${ar?"ملخص CFO":"CFO Overview"} — ${period} ${mode==="connected"?(ar?"| بيانات حقيقية ✅":"| Live ✅"):(ar?"| تجريبي 🔷":"| Demo 🔷")}`),
+        el("div",{style:{fontSize:mob?22:32,fontWeight:900,color:"white",lineHeight:1.1}},fmt(kpi.rev)," ",el("span",{style:{fontSize:13,opacity:.85}},SY)),
+        el("div",{style:{fontSize:10,color:"rgba(255,255,255,.75)",marginTop:4}},ar?"إجمالي الإيرادات":"Total Revenue")
+      ),
+      el("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,textAlign:"center"}},
+        [{l:ar?"هامش إجمالي":"Gross M.",v:`${fmtD(kpi.gm)}%`,ok:kpi.gm>=40},
+         {l:ar?"هامش صافي":"Net M.",   v:`${fmtD(kpi.nm)}%`,ok:kpi.nm>=15},
+         {l:ar?"تحصيل":"Collection",   v:`${fmtD(kpi.coll)}%`,ok:kpi.coll>=80},
+         {l:ar?"خزينة":"Cash",         v:fmt(kpi.cash),ok:kpi.cash>0}]
+        .map((x,i)=>el("div",{key:i,style:{background:"rgba(255,255,255,.15)",borderRadius:8,padding:"6px 10px"}},
+          el("div",{style:{fontSize:9,color:"rgba(255,255,255,.75)"}},x.l),
+          el("div",{style:{fontSize:13,fontWeight:800,color:"white"}},x.v),
+          el("div",{style:{fontSize:10}},x.ok?"✅":"⚠️")))
+      )
+    ),
+    // KPI cards
+    el("div",{style:{display:"grid",gridTemplateColumns:mob?"1fr 1fr":"repeat(4,1fr)",gap:12,marginBottom:16}},
+      el(Card,{label:ar?"إجمالي الإيرادات":"Revenue",    val:`${fmt(kpi.rev)} ${SY}`,    sub:`${kpi.invCount} ${ar?"فاتورة":"invoices"}`,c:G.inf,icon:"📄"}),
+      el(Card,{label:ar?"إجمالي الربح":"Gross Profit",   val:`${fmt(kpi.gp)} ${SY}`,     sub:`GM: ${fmtD(kpi.gm)}%`,                    c:G.pos,icon:"📈"}),
+      el(Card,{label:ar?"صافي الربح":"Net Profit",       val:`${fmt(kpi.np)} ${SY}`,     sub:`NM: ${fmtD(kpi.nm)}%`,                    c:kpi.np>=0?G.gold:G.neg,icon:"💰"}),
+      el(Card,{label:ar?"المصروفات":"Expenses",          val:`${fmt(kpi.exp)} ${SY}`,    sub:ar?"تشغيلية":"Operational",                c:G.neg,icon:"📊"}),
+    ),
+    // AR / AP / Cash
+    el("div",{style:{display:"grid",gridTemplateColumns:mob?"1fr":"repeat(3,1fr)",gap:12,marginBottom:16}},
+      ...[
+        {title:"◆ "+(ar?"الذمم المدينة":"Accounts Receivable"),val:kpi.ar_bal,c:G.inf,rows:[
+          [ar?"متأخرة":"Overdue",       `${fmt(kpi.ovAR)} ${SY}`,G.neg],
+          [ar?"نسبة التحصيل":"Collection",`${fmtD(kpi.coll)}%`, kpi.coll>=80?G.pos:G.wrn],
+        ]},
+        {title:"◎ "+(ar?"الذمم الدائنة":"Accounts Payable"),val:kpi.ap_bal,c:G.wrn,rows:[
+          [ar?"متأخرة للموردين":"Overdue AP",`${fmt(kpi.ovAP)} ${SY}`,G.neg],
+          [ar?"عدد الموردين":"Suppliers",   data.suppliers.length,G.txt],
+        ]},
+        {title:"💰 "+(ar?"الخزينة":"Treasury"),val:kpi.cash,c:G.pos,rows:
+          data.treasuries.length>0
+            ?data.treasuries.slice(0,3).map(t=>[ar?t.name:t.nameEn,`${fmt(t.balance)} ${t.currency}`,G.txt])
+            :[[ar?"لا توجد خزائن":"No treasuries","—",G.txtF]]
+        },
+      ].map(({title,val,c,rows},i)=>el("div",{key:i,style:{background:"white",border:`1px solid ${G.bdr}`,borderTop:`3px solid ${c}`,borderRadius:14,padding:"14px 16px",boxShadow:G.shd}},
+        el("div",{style:{fontSize:12,fontWeight:700,color:G.goldD,marginBottom:8}},title),
+        el("div",{style:{fontSize:20,fontWeight:800,color:c,marginBottom:8}},`${fmt(val)} ${SY}`),
+        rows.map(([l,v,rc],j)=>el("div",{key:j,style:{display:"flex",justifyContent:"space-between",padding:"4px 0",borderTop:`1px solid ${G.bdrS}`}},
+          el("span",{style:{fontSize:9,color:G.txtF}},l),
+          el("span",{style:{fontSize:10,fontWeight:700,color:rc}},v)
+        ))
+      ))
+    ),
+    // P&L summary
+    el("div",{style:{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd}},
+      el("div",{style:{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:14}},"▲ "+(ar?"ملخص قائمة الدخل":"Income Statement")),
+      [
+        {l:ar?"إجمالي الإيرادات":"Total Revenue",         v:kpi.rev,  c:G.inf,b:true},
+        {l:ar?"(−) تكلفة المشتريات":"(−) Purchases",     v:-kpi.pur, c:G.neg},
+        {l:ar?"إجمالي الربح":"Gross Profit",              v:kpi.gp,   c:G.pos,b:true,s:`${fmtD(kpi.gm)}%`},
+        {l:ar?"(−) المصروفات":"(−) Expenses",             v:-kpi.exp, c:G.wrn},
+        {l:ar?"صافي الربح":"Net Profit",                  v:kpi.np,   c:kpi.np>=0?G.gold:G.neg,b:true,big:true,s:`${fmtD(kpi.nm)}%`},
+      ].map(({l,v,c,b,s,big},i)=>el("div",{key:i,style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:big?"10px 0 2px":"5px 0",borderBottom:big?`2px solid ${G.bdr}`:`1px solid ${G.bdrS}`,borderTop:big?`2px solid ${G.bdr}`:"none",marginTop:big?4:0}},
+        el("span",{style:{fontSize:big?12:10,color:b?G.txt:G.txtD,fontWeight:b?700:400}},l),
+        el("div",{style:{display:"flex",alignItems:"baseline",gap:6}},
+          s&&el("span",{style:{fontSize:9,color:G.txtF}},s),
+          el("span",{style:{fontSize:big?15:11,fontWeight:b?800:600,color:c}},v<0?"(":"",fmt(Math.abs(v)),v<0?")":""," ",SY)
+        )
+      ))
+    )
   );
 
-  // ── LIQUIDITY ────────────────────────────────────────────
-  const Liq=()=>(
-    <div style={{display:"grid",gridTemplateColumns:mob?"1fr":"repeat(3,1fr)",gap:14}}>
-      <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px"}}>
-        <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>◈ {ar?"تقادم الذمم":"AR Aging"}</div>
-        {AR_AGING.map((b,i)=>(
-          <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:`1px solid ${G.bdrS}`}}>
-            <div style={{display:"flex",alignItems:"center",gap:8}}>
-              <span style={{width:8,height:8,borderRadius:2,background:b.c}}/>
-              <span style={{fontSize:11,color:G.txtD}}>{ar?b.ar:b.en}</span>
-            </div>
-            <span style={{fontSize:11,color:G.txt,fontWeight:700}}>{fmt(b.v)}</span>
-          </div>
-        ))}
-      </div>
-      <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px"}}>
-        <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>◎ {ar?"مؤشرات السيولة":"Liquidity Ratios"}</div>
-        {[[ar?"نسبة التداول":"Current Ratio",k.cr,1.5],[ar?"النسبة السريعة":"Quick Ratio",k.qr,1.0],[ar?"DSO (يوم)":"DSO (days)",k.dso,35,true]].map(([l,v,t,lower],i)=>{
-          const ok=lower?v<=t:v>=t;
-          return <div key={i} style={{padding:"9px 0",borderBottom:`1px solid ${G.bdrS}`}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
-              <div style={{fontSize:11,color:G.txt,fontWeight:600}}>{l}</div>
-              <div style={{display:"flex",alignItems:"center",gap:6}}>
-                <span style={{fontSize:14,fontWeight:800,color:ok?G.pos:G.wrn}}>{fmtD(v,lower?0:2)}</span>
-                <span>{ok?"✅":"⚠️"}</span>
-              </div>
-            </div>
-            <Hbar v={Math.min(v,t*1.5)} mx={t*1.5} c={ok?G.pos:G.wrn}/>
-          </div>;
-        })}
-      </div>
-      <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px"}}>
-        <div style={{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}}>◆ {ar?"رأس المال العامل":"Working Capital"}</div>
-        <div style={{textAlign:"center",padding:"16px 0"}}>
-          <div style={{fontSize:36,fontWeight:900,color:k.wc>0?G.pos:G.neg}}>{fmt(k.wc*1000)}</div>
-          <div style={{fontSize:11,color:G.txtF,marginTop:4}}>{SY}</div>
-        </div>
-        <div style={{padding:"10px 12px",background:G.sur,borderRadius:8}}>
-          <div style={{display:"flex",justifyContent:"space-between",fontSize:11,marginBottom:6}}>
-            <span style={{color:G.txtD}}>{ar?"الأصول المتداولة":"Current Assets"}</span>
-            <span style={{color:G.pos,fontWeight:700}}>{fmt((k.cash+k.ar+480)*1000)}</span>
-          </div>
-          <div style={{display:"flex",justifyContent:"space-between",fontSize:11}}>
-            <span style={{color:G.txtD}}>{ar?"الالتزامات المتداولة":"Current Liabilities"}</span>
-            <span style={{color:G.neg,fontWeight:700}}>{fmt((k.ap+280)*1000)}</span>
-          </div>
-        </div>
-      </div>
-    </div>
+  // ══ PAGE: P&L ════════════════════════════════════════════
+  const PagePL=()=>{
+    const cats=fd.expenses.reduce((a,e)=>{const k=ar?e.category:e.categoryEn;a[k]=(a[k]||0)+e.amount;return a;},{});
+    const mx=Math.max(...Object.values(cats),1);
+    return el("div",{style:{animation:"fadeIn .4s"}},
+      el("div",{style:{display:"grid",gridTemplateColumns:mob?"1fr":"1fr 1fr",gap:14}},
+        // Invoices
+        el("div",{style:{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd}},
+          el("div",{style:{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}},"📄 "+(ar?"الفواتير":"Invoices")),
+          fd.invoices.length===0
+            ?el(Empty,{msg:ar?"لا توجد فواتير في هذه الفترة":"No invoices for this period"})
+            :el("div",{style:{overflowX:"auto"}},
+                el("table",{style:{width:"100%",borderCollapse:"collapse",minWidth:320}},
+                  el("thead",null,el("tr",null,[ar?"رقم":"#",ar?"العميل":"Client",ar?"المبلغ":"Amount",ar?"الحالة":"Status"].map(h=>el(TH,{key:h,h})))),
+                  el("tbody",null,
+                    fd.invoices.map((inv,i)=>el("tr",{key:i,style:{background:i%2===0?G.sur:"white"}},
+                      el(TD,{sm:true,c:G.txtF},inv.number),
+                      el(TD,{bold:true},ar?inv.client:inv.clientEn),
+                      el(TD,{c:G.inf,bold:true},`${fmt(inv.amount)} ${SY}`),
+                      el("td",{style:{padding:"7px 10px",borderBottom:`1px solid ${G.bdrS}`}},
+                        el("span",{style:{display:"inline-block",padding:"1px 6px",borderRadius:20,fontSize:9,fontWeight:700,background:(inv.status==="paid"?G.pos:inv.status==="partial"?G.wrn:G.neg)+"18",color:inv.status==="paid"?G.pos:inv.status==="partial"?G.wrn:G.neg,border:`1px solid ${(inv.status==="paid"?G.pos:inv.status==="partial"?G.wrn:G.neg)}30`}},
+                          inv.status==="paid"?(ar?"مدفوعة":"Paid"):inv.status==="partial"?(ar?"جزئي":"Partial"):(ar?"مستحقة":"Due"))
+                      )
+                    )),
+                    el("tr",{style:{background:G.goldL}},
+                      el("td",{colSpan:2,style:{padding:"8px 10px",fontSize:11,fontWeight:800,color:G.goldD,borderTop:`2px solid ${G.bdr}`}},ar?"الإجمالي":"Total"),
+                      el("td",{style:{padding:"8px 10px",fontSize:12,fontWeight:900,color:G.inf,borderTop:`2px solid ${G.bdr}`}},`${fmt(kpi.rev)} ${SY}`),
+                      el("td",{style:{borderTop:`2px solid ${G.bdr}`}})
+                    )
+                  )
+                )
+              )
+        ),
+        // Expenses
+        el("div",{style:{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd}},
+          el("div",{style:{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}},"📊 "+(ar?"المصروفات":"Expenses")),
+          fd.expenses.length===0
+            ?el(Empty,{msg:ar?"لا توجد مصروفات":"No expenses"})
+            :el("div",null,
+                Object.entries(cats).map(([cat,amt],i)=>el("div",{key:i,style:{marginBottom:12}},
+                  el("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:4}},
+                    el("span",{style:{fontSize:11,color:G.txt,fontWeight:600}},cat),
+                    el("span",{style:{fontSize:11,fontWeight:700,color:G.neg}},`${fmt(amt)} ${SY}`)
+                  ),
+                  el(Hbar,{v:amt,mx,c:G.neg})
+                )),
+                el("div",{style:{marginTop:14,padding:"9px 12px",background:G.neg+"08",borderRadius:8,display:"flex",justifyContent:"space-between",borderTop:`2px solid ${G.bdr}`}},
+                  el("span",{style:{fontSize:12,fontWeight:700,color:G.txtD}},ar?"إجمالي المصروفات":"Total Expenses"),
+                  el("span",{style:{fontSize:13,fontWeight:800,color:G.neg}},`${fmt(kpi.exp)} ${SY}`)
+                )
+              )
+        )
+      )
+    );
+  };
+
+  // ══ PAGE: AR ═════════════════════════════════════════════
+  const PageAR=()=>{
+    const unpaid=fd.invoices.filter(i=>i.status!=="paid");
+    return el("div",{style:{animation:"fadeIn .4s"}},
+      el("div",{style:{display:"grid",gridTemplateColumns:mob?"1fr 1fr":"repeat(3,1fr)",gap:12,marginBottom:16}},
+        el(Card,{label:ar?"إجمالي الذمم":"Total AR",      val:`${fmt(kpi.ar_bal)} ${SY}`,   c:G.inf}),
+        el(Card,{label:ar?"متأخرة السداد":"Overdue",       val:`${fmt(kpi.ovAR)} ${SY}`,    c:G.neg}),
+        el(Card,{label:ar?"نسبة التحصيل":"Collection",     val:`${fmtD(kpi.coll)}%`,        c:kpi.coll>=80?G.pos:G.wrn}),
+      ),
+      el("div",{style:{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd,marginBottom:14}},
+        el("div",{style:{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:14}},"◆ "+(ar?"تحليل العملاء":"Client Analysis")),
+        data.clients.length===0
+          ?el(Empty,{msg:ar?"لا يوجد عملاء — اتصل بدفترة":"No clients — connect Daftra"})
+          :data.clients.map((c,i)=>el("div",{key:i,style:{padding:"11px 14px",borderBottom:`1px solid ${G.bdrS}`,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}},
+              el("div",{style:{flex:1,minWidth:100}},
+                el("div",{style:{fontSize:12,fontWeight:700,color:G.txt}},ar?c.name:c.nameEn),
+                c.overdue>0&&el("div",{style:{fontSize:9,color:G.neg,marginTop:2}},ar?`متأخر منذ ${c.days} يوم`:`${c.days}d overdue`)
+              ),
+              el("div",{style:{textAlign:"center",minWidth:90}},
+                el("div",{style:{fontSize:13,fontWeight:800,color:c.balance>0?G.inf:G.pos}},`${fmt(c.balance)} ${SY}`),
+                el("div",{style:{fontSize:9,color:G.txtF}},ar?"مستحق":"Outstanding")
+              ),
+              c.overdue>0&&el("span",{style:{display:"inline-block",padding:"1px 6px",borderRadius:20,fontSize:9,fontWeight:700,background:(c.days>30?G.neg:G.wrn)+"18",color:c.days>30?G.neg:G.wrn,border:`1px solid ${(c.days>30?G.neg:G.wrn)}30`}},ar?`⚠ ${c.days}ي`:`⚠ ${c.days}d`)
+            ))
+      ),
+      el("div",{style:{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd}},
+        el("div",{style:{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}},ar?"الفواتير غير المسددة":"Outstanding Invoices"),
+        unpaid.length===0
+          ?el("div",{style:{padding:"20px",textAlign:"center",color:G.pos,fontWeight:700,fontSize:13}},ar?"✅ جميع الفواتير مسددة!":"✅ All invoices paid!")
+          :el("div",{style:{overflowX:"auto"}},
+              el("table",{style:{width:"100%",borderCollapse:"collapse",minWidth:380}},
+                el("thead",null,el("tr",null,[ar?"رقم":"#",ar?"العميل":"Client",ar?"المبلغ":"Amount",ar?"المدفوع":"Paid",ar?"الباقي":"Remaining",ar?"الحالة":"Status"].map(h=>el(TH,{key:h,h})))),
+                el("tbody",null,unpaid.map((inv,i)=>el("tr",{key:i,style:{background:i%2===0?G.sur:"white"}},
+                  el(TD,{sm:true,c:G.txtF},inv.number),
+                  el(TD,{bold:true},ar?inv.client:inv.clientEn),
+                  el(TD,{c:G.inf,bold:true},`${fmt(inv.amount)} ${SY}`),
+                  el(TD,{c:G.pos,bold:true},`${fmt(inv.paid)} ${SY}`),
+                  el(TD,{c:G.neg,bold:true},`${fmt(inv.amount-inv.paid)} ${SY}`),
+                  el("td",{style:{padding:"7px 10px",borderBottom:`1px solid ${G.bdrS}`}},
+                    el("span",{style:{display:"inline-block",padding:"1px 6px",borderRadius:20,fontSize:9,fontWeight:700,background:(inv.status==="partial"?G.wrn:G.neg)+"18",color:inv.status==="partial"?G.wrn:G.neg,border:`1px solid ${(inv.status==="partial"?G.wrn:G.neg)}30`}},
+                      inv.status==="partial"?(ar?"جزئي":"Partial"):(ar?"مستحقة":"Due")))
+                )))
+              )
+            )
+      )
+    );
+  };
+
+  // ══ PAGE: AP ═════════════════════════════════════════════
+  const PageAP=()=>el("div",{style:{animation:"fadeIn .4s"}},
+    el("div",{style:{display:"grid",gridTemplateColumns:mob?"1fr 1fr":"repeat(3,1fr)",gap:12,marginBottom:16}},
+      el(Card,{label:ar?"المستحق للموردين":"Total AP",    val:`${fmt(kpi.ap_bal)} ${SY}`,  c:G.wrn}),
+      el(Card,{label:ar?"متأخرة":"Overdue AP",             val:`${fmt(kpi.ovAP)} ${SY}`,   c:G.neg}),
+      el(Card,{label:ar?"إجمالي المشتريات":"Purchases",    val:`${fmt(kpi.pur)} ${SY}`,    c:G.inf}),
+    ),
+    el("div",{style:{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd,marginBottom:14}},
+      el("div",{style:{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:14}},"◎ "+(ar?"الموردون":"Suppliers")),
+      data.suppliers.length===0
+        ?el(Empty,{msg:ar?"لا يوجد موردون":"No suppliers"})
+        :data.suppliers.map((s,i)=>el("div",{key:i,style:{padding:"11px 14px",borderBottom:`1px solid ${G.bdrS}`,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}},
+            el("div",{style:{flex:1}},
+              el("div",{style:{fontSize:12,fontWeight:700,color:G.txt}},ar?s.name:s.nameEn),
+              s.overdue>0&&el("div",{style:{fontSize:9,color:G.neg,marginTop:2}},ar?`متأخر ${s.days} يوم`:`${s.days}d overdue`)
+            ),
+            el("div",{style:{textAlign:"center"}},
+              el("div",{style:{fontSize:13,fontWeight:800,color:s.balance>0?G.wrn:G.pos}},`${fmt(s.balance)} ${SY}`),
+              el("div",{style:{fontSize:9,color:G.txtF}},ar?"المستحق":"Owed")
+            ),
+            s.overdue>0&&el("span",{style:{display:"inline-block",padding:"1px 6px",borderRadius:20,fontSize:9,fontWeight:700,background:G.neg+"18",color:G.neg,border:`1px solid ${G.neg}30`}},ar?"⚠ متأخر":"⚠ Overdue")
+          ))
+    ),
+    el("div",{style:{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd}},
+      el("div",{style:{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}},ar?"فواتير الشراء":"Purchase Invoices"),
+      fd.purchaseInvoices.length===0
+        ?el(Empty,{msg:ar?"لا توجد فواتير شراء":"No purchase invoices"})
+        :el("div",{style:{overflowX:"auto"}},
+            el("table",{style:{width:"100%",borderCollapse:"collapse",minWidth:360}},
+              el("thead",null,el("tr",null,[ar?"المورد":"Supplier",ar?"المبلغ":"Amount",ar?"المدفوع":"Paid",ar?"الباقي":"Remaining",ar?"الحالة":"Status"].map(h=>el(TH,{key:h,h})))),
+              el("tbody",null,fd.purchaseInvoices.map((p,i)=>el("tr",{key:i,style:{background:i%2===0?G.sur:"white"}},
+                el(TD,{bold:true},ar?p.supplier:p.supplierEn),
+                el(TD,{c:G.wrn,bold:true},`${fmt(p.amount)} ${SY}`),
+                el(TD,{c:G.pos,bold:true},`${fmt(p.paid)} ${SY}`),
+                el(TD,{c:G.neg,bold:true},`${fmt(p.amount-p.paid)} ${SY}`),
+                el("td",{style:{padding:"7px 10px",borderBottom:`1px solid ${G.bdrS}`}},
+                  el("span",{style:{display:"inline-block",padding:"1px 6px",borderRadius:20,fontSize:9,fontWeight:700,background:(p.status==="paid"?G.pos:p.status==="partial"?G.wrn:G.neg)+"18",color:p.status==="paid"?G.pos:p.status==="partial"?G.wrn:G.neg,border:`1px solid ${(p.status==="paid"?G.pos:p.status==="partial"?G.wrn:G.neg)}30`}},
+                    p.status==="paid"?(ar?"مدفوعة":"Paid"):p.status==="partial"?(ar?"جزئي":"Partial"):(ar?"مستحقة":"Due"))
+                )
+              )))
+            )
+          )
+    )
   );
 
-  // ── REPORTS ──────────────────────────────────────────────
-  const Rep=()=>(
-    <div style={{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px"}}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}}>
-        <div style={{fontSize:13,fontWeight:700,color:G.goldD}}>✦ {ar?"تقرير الأداء الشامل":"KPI Performance Report"}</div>
-        <div style={{display:"flex",gap:8}}>
-          <button onClick={()=>window.print()} style={{padding:"7px 12px",borderRadius:7,border:`1px solid ${G.bdr}`,background:G.sur,color:G.txtD,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🖨 {ar?"طباعة":"Print"}</button>
-          <button onClick={doExcel} style={{padding:"7px 12px",borderRadius:7,border:`1px solid ${G.pos}50`,background:"#F0FFF0",color:G.pos,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>📊 Excel</button>
-          <button onClick={()=>window.print()} style={{padding:"7px 12px",borderRadius:7,border:`1px solid ${G.gold}`,background:G.goldL,color:G.goldD,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>📄 PDF</button>
-        </div>
-      </div>
-      <div style={{overflowX:"auto"}}>
-        <table style={{width:"100%",borderCollapse:"collapse",minWidth:500}}>
-          <thead><tr>
-            {[ar?"المؤشر":"KPI",ar?"القيمة":"Value",ar?"المعيار":"Bench",ar?"الحالة":"Status"].map(h=>(
-              <th key={h} style={{textAlign:ar?"right":"left",padding:"8px 12px",fontSize:11,color:G.txtF,borderBottom:`2px solid ${G.bdr}`,fontWeight:700}}>{h}</th>
-            ))}
-          </tr></thead>
-          <tbody>
-            {[
-              [ar?"Gross Margin":"Gross Margin",`${fmt(k.gp*1000)} ${SY}`,`${fmtD(k.gm)}%/≥40%`,k.gm>=40],
-              [ar?"EBITDA Margin":"EBITDA Margin",`${fmt(k.eb*1000)} ${SY}`,`${fmtD(k.em)}%/≥15%`,k.em>=15],
-              [ar?"Net Margin":"Net Margin",`${fmt(k.nt*1000)} ${SY}`,`${fmtD(k.nm)}%/≥10%`,k.nm>=10],
-              [ar?"Current Ratio":"Current Ratio",fmtD(k.cr,2),"≥1.5",k.cr>=1.5],
-              [ar?"Cash Runway":"Cash Runway",`${fmtD(k.rw,1)} ${ar?"أشهر":"mo"}`,"≥6",k.rw>=6],
-              [ar?"DSO":"DSO",`${fmtD(k.dso,0)} ${ar?"يوم":"days"}`,"≤30",k.dso<=30],
-            ].map(([n,v,b,ok],i)=>(
-              <tr key={i} style={{background:i%2===0?G.sur:"white"}}>
-                <td style={{padding:"9px 12px",fontSize:12,fontWeight:700,color:G.txt,borderBottom:`1px solid ${G.bdrS}`}}>{n}</td>
-                <td style={{padding:"9px 12px",fontSize:12,color:G.gold,fontWeight:700,borderBottom:`1px solid ${G.bdrS}`}}>{v}</td>
-                <td style={{padding:"9px 12px",fontSize:11,color:G.txtF,borderBottom:`1px solid ${G.bdrS}`}}>{b}</td>
-                <td style={{padding:"9px 12px",borderBottom:`1px solid ${G.bdrS}`}}><Bdg t={ok?(ar?"✅ مطابق":"✅ OK"):(ar?"⚠️ راجع":"⚠️ Review")} c={ok?G.pos:G.wrn} sm/></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {realData&&<div style={{marginTop:14,padding:"10px 14px",background:G.goldL,borderRadius:8,fontSize:11,color:G.goldD,fontWeight:600}}>
-        📊 {ar?`البيانات من دفترة — ${realData.counts.inv} فاتورة | ${realData.counts.exp} مصروف | ${realData.months} شهر نشط`:`Data from Daftra — ${realData.counts.inv} invoices | ${realData.counts.exp} expenses | ${realData.months} active months`}
-      </div>}
-    </div>
+  // ══ PAGE: TREASURY ════════════════════════════════════════
+  const PageTreasury=()=>el("div",{style:{animation:"fadeIn .4s"}},
+    el("div",{style:{background:`linear-gradient(135deg,${G.pos},#145214)`,borderRadius:14,padding:"14px 18px",marginBottom:16,color:"white",boxShadow:`0 4px 16px ${G.pos}50`}},
+      el("div",{style:{fontSize:11,opacity:.85}},ar?"إجمالي الخزينة والبنوك":"Total Treasury & Banks"),
+      el("div",{style:{fontSize:28,fontWeight:900,marginTop:4}},`${fmt(kpi.cash)} ${SY}`)
+    ),
+    data.treasuries.length===0
+      ?el(Empty,{msg:ar?"لا توجد خزائن — اتصل بدفترة":"No treasuries — connect Daftra"})
+      :el("div",{style:{display:"grid",gridTemplateColumns:mob?"1fr":"repeat(2,1fr)",gap:14}},
+          data.treasuries.map((t,i)=>el("div",{key:i,style:{background:"white",border:`1px solid ${G.bdr}`,borderTop:`3px solid ${t.type==="bank"?G.inf:G.gold}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd}},
+            el("div",{style:{display:"flex",alignItems:"center",gap:10,marginBottom:12}},
+              el("span",{style:{fontSize:24}},t.type==="bank"?"🏦":"💵"),
+              el("div",null,
+                el("div",{style:{fontSize:13,fontWeight:700,color:G.txt}},ar?t.name:t.nameEn),
+                el("div",{style:{fontSize:10,color:G.txtF}},t.type==="bank"?(ar?"حساب بنكي":"Bank Account"):(ar?"خزينة نقدية":"Cash Vault"))
+              )
+            ),
+            el("div",{style:{fontSize:24,fontWeight:900,color:t.type==="bank"?G.inf:G.gold,marginBottom:10}},`${fmt(t.balance)} ${t.currency}`),
+            el(Hbar,{v:t.balance,mx:Math.max(...data.treasuries.map(x=>x.balance),1),c:t.type==="bank"?G.inf:G.gold,h:8})
+          ))
+        )
   );
 
-  // ── MAIN ─────────────────────────────────────────────────
-  return (
-    <>
-      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet"/>
-      <style>{`* { box-sizing:border-box; } @media print { .np { display:none!important; } }`}</style>
-      <div style={{minHeight:"100vh",background:G.bg,color:G.txt,fontFamily:"'Cairo',sans-serif",direction:dir}}>
-        {!mob&&<Sidebar/>}
-        {mob&&<BottomNav/>}
-        <main style={{[ar?"marginRight":"marginLeft"]:SW,padding:mob?"12px 12px 80px":"18px 22px",minHeight:"100vh"}}>
+  // ══ PAGE: REPORTS ═════════════════════════════════════════
+  const PageReports=()=>el("div",{style:{animation:"fadeIn .4s"}},
+    fetchLog.length>0&&el("div",{style:{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"14px 16px",boxShadow:G.shd,marginBottom:14}},
+      el("div",{style:{fontSize:12,fontWeight:700,color:G.goldD,marginBottom:10}},"📡 "+(ar?"سجل جلب البيانات من دفترة":"Daftra Fetch Log")),
+      el("div",{style:{display:"flex",gap:8,flexWrap:"wrap"}},
+        fetchLog.map((l,i)=>el("span",{key:i,style:{display:"inline-block",padding:"2px 9px",borderRadius:20,fontSize:10,fontWeight:700,background:(l.ok?G.pos:G.neg)+"18",color:l.ok?G.pos:G.neg,border:`1px solid ${(l.ok?G.pos:G.neg)}30`}},
+          `${l.ok?"✅":"❌"} ${l.label}: ${l.count}`))
+      )
+    ),
+    el("div",{style:{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd}},
+      el("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,flexWrap:"wrap",gap:8}},
+        el("div",{style:{fontSize:13,fontWeight:700,color:G.goldD,display:"flex",alignItems:"center",gap:8}},
+          "✦ "+(ar?"التقرير المالي":"Financial Report")," ",
+          el("span",{style:{display:"inline-block",padding:"2px 9px",borderRadius:20,fontSize:10,fontWeight:700,background:(mode==="connected"?G.pos:G.wrn)+"18",color:mode==="connected"?G.pos:G.wrn,border:`1px solid ${(mode==="connected"?G.pos:G.wrn)}30`}},
+            mode==="connected"?(ar?"بيانات حقيقية":"Live Data"):(ar?"تجريبي":"Demo"))
+        ),
+        el("div",{style:{display:"flex",gap:8,flexWrap:"wrap"}},
+          el("button",{onClick:()=>window.print(),style:{padding:"7px 12px",borderRadius:7,border:`1px solid ${G.bdr}`,background:G.sur,color:G.txtD,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}},"🖨 "+(ar?"طباعة":"Print")),
+          el("button",{onClick:exportCSV,style:{padding:"7px 12px",borderRadius:7,border:`1px solid ${G.pos}50`,background:"#F0FFF0",color:G.pos,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}},"📊 Excel"),
+          el("button",{onClick:()=>window.print(),style:{padding:"7px 12px",borderRadius:7,border:`1px solid ${G.gold}`,background:G.goldL,color:G.goldD,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}},"📄 PDF")
+        )
+      ),
+      el("div",{style:{overflowX:"auto"}},
+        el("table",{style:{width:"100%",borderCollapse:"collapse",minWidth:420}},
+          el("thead",null,el("tr",null,[ar?"المؤشر":"KPI",ar?"القيمة":"Value",ar?"المعيار":"Benchmark",ar?"الحالة":"Status"].map(h=>el(TH,{key:h,h})))),
+          el("tbody",null,[
+            [ar?"إجمالي الإيرادات":"Revenue",    `${fmt(kpi.rev)} ${SY}`,   "—",    true],
+            [ar?"إجمالي الربح":"Gross Profit",   `${fmt(kpi.gp)} ${SY}`,    "≥40%", kpi.gm>=40],
+            [ar?"هامش الربح الإجمالي":"GM",      `${fmtD(kpi.gm)}%`,        "≥40%", kpi.gm>=40],
+            [ar?"صافي الربح":"Net Profit",       `${fmt(kpi.np)} ${SY}`,    "≥0",   kpi.np>=0],
+            [ar?"هامش الصافي":"Net Margin",      `${fmtD(kpi.nm)}%`,        "≥15%", kpi.nm>=15],
+            [ar?"الذمم المدينة":"AR",             `${fmt(kpi.ar_bal)} ${SY}`,"—",    true],
+            [ar?"الذمم الدائنة":"AP",             `${fmt(kpi.ap_bal)} ${SY}`,"—",    true],
+            [ar?"نسبة التحصيل":"Collection",     `${fmtD(kpi.coll)}%`,      "≥80%", kpi.coll>=80],
+            [ar?"إجمالي الخزينة":"Cash",          `${fmt(kpi.cash)} ${SY}`,  "≥0",   kpi.cash>=0],
+          ].map(([n,v,b,ok],i)=>el("tr",{key:i,style:{background:i%2===0?G.sur:"white"}},
+            el(TD,{bold:true},n),
+            el("td",{style:{padding:"8px 12px",fontSize:12,color:G.gold,fontWeight:700,borderBottom:`1px solid ${G.bdrS}`}},v),
+            el("td",{style:{padding:"8px 12px",fontSize:11,color:G.txtF,borderBottom:`1px solid ${G.bdrS}`}},b),
+            el("td",{style:{padding:"8px 12px",borderBottom:`1px solid ${G.bdrS}`}},
+              el("span",{style:{display:"inline-block",padding:"1px 6px",borderRadius:20,fontSize:9,fontWeight:700,background:(ok?G.pos:G.wrn)+"18",color:ok?G.pos:G.wrn,border:`1px solid ${(ok?G.pos:G.wrn)}30`}},ok?"✅ OK":"⚠️ Review")
+            )
+          )))
+        )
+      )
+    )
+  );
 
-          {/* HEADER */}
-          <div style={{marginBottom:14}} className="np">
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-              <h1 style={{fontSize:mob?15:19,fontWeight:800,color:G.txt,margin:0}}>{NAV.find(n=>n.id===page)?.[ar?"ar":"en"]}</h1>
-              <div style={{display:"flex",gap:8,alignItems:"center"}}>
-                {conn.status==="connected"&&<button onClick={disconnect} style={{padding:"5px 10px",borderRadius:7,border:`1px solid ${G.neg}30`,background:"#FFF0EE",color:G.neg,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>⛔ {ar?"قطع":"Disconnect"}</button>}
-                <button onClick={()=>setShowConn(v=>!v)} style={{display:"flex",alignItems:"center",gap:5,padding:"6px 12px",borderRadius:8,border:`1.5px solid ${conn.status==="connected"?G.pos:G.bdr}`,background:conn.status==="connected"?"#F0FFF0":"white",color:conn.status==="connected"?G.pos:G.txtF,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>
-                  <span>{conn.status==="connected"?"🟢":conn.status==="connecting"?"🟡":"🔴"}</span>
-                  {conn.status==="connected"?(ar?"متصل بدفترة":"Connected"):conn.status==="connecting"?(ar?"جاري...":"Connecting..."):(ar?"🔌 اتصل":"🔌 Connect")}
-                </button>
-                <div style={{display:"flex",overflow:"hidden",borderRadius:8,border:`1px solid ${G.bdr}`}}>
-                  {["AR","EN"].map(l=><button key={l} onClick={()=>setLang(l)} style={{padding:"6px 14px",border:"none",background:lang===l?G.gold:"transparent",color:lang===l?"white":G.txtF,fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{l}</button>)}
-                </div>
-              </div>
-            </div>
-
-            {/* Period + Currency */}
-            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",background:G.sur,border:`1px solid ${G.bdr}`,borderRadius:10,padding:"10px 14px",gap:8}}>
-              <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}>
-                <span style={{fontSize:11,fontWeight:700,color:G.txtF,whiteSpace:"nowrap"}}>{ar?"الفترة:":"Period:"}</span>
-                {[{c:"MTD",ar:"الشهر",en:"Month"},{c:"QTD",ar:"الربع",en:"Quarter"},{c:"YTD",ar:"السنة",en:"Year"}].map(p=>(
-                  <button key={p.c} onClick={()=>setPeriod(p.c)} style={{padding:mob?"5px 10px":"6px 14px",borderRadius:7,border:`1.5px solid ${period===p.c?G.gold:G.bdr}`,background:period===p.c?G.gold:"white",color:period===p.c?"white":G.txtD,fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}}>
-                    {p.c}{!mob&&<span style={{fontSize:9,opacity:.8,marginLeft:3,marginRight:3}}>— {ar?p.ar:p.en}</span>}
-                  </button>
-                ))}
-              </div>
-              <div style={{position:"relative",flexShrink:0}}>
-                <button onClick={()=>setShowM(v=>!v)} style={{display:"flex",alignItems:"center",gap:6,padding:"7px 14px",borderRadius:8,border:`2px solid ${G.gold}`,background:"white",color:G.goldD,fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",boxShadow:`0 2px 8px ${G.gold}40`}}>
-                  <span style={{fontSize:20,lineHeight:1}}>{money.f}</span>
-                  <span>{SY}</span>
-                  <span style={{fontSize:9,color:G.txtF}}>{showM?"▲":"▼"}</span>
-                </button>
-                {showM&&(
-                  <div style={{position:"absolute",top:"calc(100% + 8px)",[ar?"left":"right"]:0,background:"white",border:`1.5px solid ${G.bdr}`,borderRadius:12,boxShadow:"0 8px 32px rgba(0,0,0,0.15)",zIndex:999,width:225,overflow:"hidden"}}>
-                    <div style={{padding:"8px 14px",borderBottom:`1px solid ${G.bdrS}`,fontSize:10,color:G.txtF,fontWeight:700}}>{ar?"اختر العملة":"SELECT CURRENCY"}</div>
-                    {CURR.map(c=>(
-                      <div key={c.code} onClick={()=>{setMoney(c);setShowM(false);}} style={{display:"flex",alignItems:"center",gap:10,padding:"9px 14px",cursor:"pointer",background:money.code===c.code?G.goldP:"transparent",borderBottom:`1px solid ${G.bdrS}`}}>
-                        <span style={{fontSize:20}}>{c.f}</span>
-                        <div style={{flex:1}}><div style={{fontSize:12,fontWeight:700,color:money.code===c.code?G.goldD:G.txt}}>{ar?c.n:c.nE}</div><div style={{fontSize:10,color:G.txtF}}>{c.s} • {c.sE}</div></div>
-                        {money.code===c.code&&<span style={{color:G.gold}}>✓</span>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Connection Modal */}
-          {showConn&&(
-            <div style={{position:"fixed",inset:0,background:"rgba(30,20,8,0.5)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
-              <div style={{background:"white",borderRadius:16,padding:28,width:"100%",maxWidth:440,boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
-                <div style={{fontSize:17,fontWeight:800,color:G.goldD,marginBottom:4}}>🔗 {ar?"اتصال بدفترة":"Connect to Daftra"}</div>
-                <div style={{fontSize:11,color:G.txtF,marginBottom:20}}>{ar?"اتصل لجلب بياناتك الحقيقية":"Connect to load your real financial data"}</div>
-                <button onClick={()=>{setShowConn(false);connectOAuth();}} style={{width:"100%",padding:"11px",borderRadius:9,border:"none",background:`linear-gradient(135deg,${G.gold},${G.goldD})`,color:"white",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",marginBottom:10,display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-                  <span style={{fontSize:18}}>🔗</span>{ar?"تسجيل دخول بدفترة (موصى به)":"Login with Daftra (Recommended)"}
-                </button>
-                <div style={{textAlign:"center",fontSize:11,color:G.txtF,marginBottom:10}}>{ar?"— أو API Key يدوي —":"— or manual API Key —"}</div>
-                <div style={{marginBottom:10}}>
-                  <input value={conn.sub} onChange={e=>setConn(c=>({...c,sub:e.target.value}))} placeholder={ar?"النطاق الفرعي.daftra.com":"subdomain.daftra.com"} style={{width:"100%",padding:"8px 12px",border:`1.5px solid ${G.bdr}`,borderRadius:7,fontSize:12,fontFamily:"inherit",marginBottom:8,boxSizing:"border-box"}}/>
-                  <input type="password" value={conn.key} onChange={e=>setConn(c=>({...c,key:e.target.value}))} placeholder="API Key" style={{width:"100%",padding:"8px 12px",border:`1.5px solid ${G.bdr}`,borderRadius:7,fontSize:12,fontFamily:"inherit",boxSizing:"border-box"}}/>
-                </div>
-                {connMsg&&<div style={{padding:"7px 10px",borderRadius:7,background:connMsg.includes("✅")?"#F0FFF0":"#FFF0EE",color:connMsg.includes("✅")?G.pos:G.neg,fontSize:11,fontWeight:600,marginBottom:10}}>{connMsg}</div>}
-                <div style={{display:"flex",gap:8}}>
-                  <button onClick={()=>{setShowConn(false);setConnMsg("");}} style={{flex:1,padding:"9px",borderRadius:8,border:`1px solid ${G.bdr}`,background:"transparent",color:G.txtF,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>{ar?"إلغاء":"Cancel"}</button>
-                  <button onClick={connectKey} style={{flex:1,padding:"9px",borderRadius:8,border:`1px solid ${G.bdr}`,background:"white",color:G.goldD,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>API Key</button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Status Banner */}
-          {conn.status==="connected"&&(
-            <div style={{background:"#F0FFF0",border:`1px solid ${G.pos}40`,borderRadius:10,padding:"10px 16px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}} className="np">
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <span style={{fontSize:16}}>{loading?"⏳":"🟢"}</span>
-                <div>
-                  <div style={{fontSize:12,fontWeight:700,color:G.pos}}>
-                    {loading?(ar?"جاري جلب بياناتك من دفترة...":"Loading your data from Daftra..."):
-                     realData?(ar?`✅ بيانات حقيقية — ${realData.counts.inv} فاتورة | ${realData.counts.exp} مصروف`:`✅ Real data — ${realData.counts.inv} invoices | ${realData.counts.exp} expenses`):
-                     connMsg||(ar?"متصل — لا توجد بيانات بعد":"Connected — No data yet")}
-                  </div>
-                  {realData&&<div style={{fontSize:10,color:G.txtF}}>{ar?"الأرقام من حسابك الحقيقي في دفترة":"Numbers from your real Daftra account"}</div>}
-                </div>
-              </div>
-              {!loading&&conn.token&&<button onClick={()=>doFetch(conn.token,conn.sub)} style={{padding:"5px 10px",borderRadius:7,border:`1px solid ${G.pos}`,background:"white",color:G.pos,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🔄 {ar?"تحديث":"Refresh"}</button>}
-            </div>
-          )}
-          {conn.status!=="connected"&&(
-            <div style={{background:G.goldL,border:`1px solid ${G.gold}40`,borderRadius:10,padding:"10px 16px",marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:8}} className="np">
-              <div style={{display:"flex",alignItems:"center",gap:8}}>
-                <span style={{fontSize:16}}>🟡</span>
-                <div>
-                  <div style={{fontSize:12,fontWeight:700,color:G.goldD}}>{ar?"وضع التجربة — بيانات افتراضية":"Demo Mode — Sample data"}</div>
-                  <div style={{fontSize:10,color:G.txtF}}>{ar?"اضغط اتصل بدفترة لجلب بياناتك الحقيقية":"Click Connect to load your real data"}</div>
-                </div>
-              </div>
-              <button onClick={()=>setShowConn(true)} style={{padding:"6px 14px",borderRadius:8,border:"none",background:G.gold,color:"white",fontSize:11,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}}>🔌 {ar?"اتصل الآن":"Connect Now"}</button>
-            </div>
-          )}
-
-          {/* Pages */}
-          {page==="dash"&&<Dash/>}
-          {page==="exp" &&<Exp/>}
-          {page==="bud" &&<Bud/>}
-          {page==="liq" &&<Liq/>}
-          {page==="rep" &&<Rep/>}
-          {page==="rev" &&<Dash/>}
-
-          {!mob&&(
-            <div className="np" style={{marginTop:18,paddingTop:10,borderTop:`1px solid ${G.bdrS}`,display:"flex",justifyContent:"space-between",fontSize:10,color:G.txtF}}>
-              <span>IFRS • {UN} • FY 2025/2026</span>
-              <span style={{color:G.gold,fontWeight:700}}>CLink· CFO v6.0 | InvestorProHub</span>
-            </div>
-          )}
-        </main>
-      </div>
-    </>
+  // ══ RENDER ═══════════════════════════════════════════════
+  return el("div",{style:{minHeight:"100vh",background:G.bg,color:G.txt,fontFamily:"'Cairo',sans-serif",direction:dir}},
+    mode==="loading"&&el(LoadingOverlay),
+    !mob&&el(Sidebar),
+    mob&&el(BottomNav),
+    el("main",{style:{[ar?"marginRight":"marginLeft"]:SW,minHeight:"100vh"}},
+      el(ConnBar),
+      el(Header),
+      el("div",{style:{padding:mob?"12px 12px 90px":"16px 18px"}},
+        page==="home"    &&el(PageHome),
+        page==="pl"      &&el(PagePL),
+        page==="ar"      &&el(PageAR),
+        page==="ap"      &&el(PageAP),
+        page==="treasury"&&el(PageTreasury),
+        page==="reports" &&el(PageReports),
+      ),
+      !mob&&el("div",{className:"np",style:{padding:"8px 18px",borderTop:`1px solid ${G.bdrS}`,display:"flex",justifyContent:"space-between",fontSize:9,color:G.txtF}},
+        el("span",null,`IFRS • ${ar?money.n:money.nE} • FY 2025/2026`),
+        el("span",{style:{color:G.gold,fontWeight:700}},"CLink· CFO v4.0 | InvestorProHub 2026")
+      )
+    ),
+    el(Toasts)
   );
 }
 
-    ReactDOM.createRoot(document.getElementById("root")).render(
-      React.createElement(App)
-    );
-  </script>
+ReactDOM.createRoot(document.getElementById("root")).render(el(App));
+</script>
 </body>
 </html>
