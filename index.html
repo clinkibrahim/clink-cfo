@@ -224,7 +224,7 @@ function App() {
   // ── AUTH & DATA ─────────────────────────────────────────
   // mode: "demo" | "loading" | "connected" | "error"
   const [mode,      setMode]      = useState("demo");
-  const [data,      setData]      = useState(DEMO);   // demo data اللي يشوفها المستخدم
+  const [data,      setData]      = useState(DEMO);
   const [token,     setToken]     = useState(null);
   const [tokenType, setTokenType] = useState("bearer");
   const [subdomain, setSubdomain] = useState("");
@@ -233,6 +233,11 @@ function App() {
   const [fetchLog,  setFetchLog]  = useState([]);
   const [toasts,    setToasts]    = useState([]);
   const autoRef = useRef(null);
+
+  // ── API KEY MANUAL INPUT ─────────────────────────────────
+  const [showApiModal, setShowApiModal] = useState(false);
+  const [inputKey,     setInputKey]     = useState("");
+  const [inputSub,     setInputSub]     = useState("");
 
   const ar  = lang==="AR";
   const dir = ar?"rtl":"ltr";
@@ -368,6 +373,76 @@ function App() {
     window.location.href=`https://app.daftra.com/oauth/authorize?client_id=565&redirect_uri=${rd}&response_type=code`;
   };
 
+  // ── CONNECT WITH MANUAL API KEY ──────────────────────────
+  const connectWithApiKey=()=>{
+    const key=inputKey.trim();
+    const sub=inputSub.trim();
+    if(!key){toast(ar?"أدخل الـ API Key أولاً":"Please enter your API Key","error");return;}
+    setToken(key);
+    setTokenType("apikey");
+    setSubdomain(sub);
+    sessionStorage.setItem("clink_cfo_v4",JSON.stringify({token:key,tt:"apikey",sd:sub}));
+    setShowApiModal(false);
+    setInputKey(""); setInputSub("");
+    toast(ar?"✅ جاري الاتصال...":"✅ Connecting...","success");
+  };
+
+  // ── API KEY MODAL ────────────────────────────────────────
+  const ApiModal=()=>el("div",{style:{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",zIndex:9998,display:"flex",alignItems:"center",justifyContent:"center",padding:16}},
+    el("div",{style:{background:"white",borderRadius:16,padding:"24px 28px",width:"100%",maxWidth:420,boxShadow:"0 20px 60px rgba(0,0,0,0.3)",animation:"fadeIn .3s"}},
+      el("div",{style:{fontSize:16,fontWeight:800,color:G.goldD,marginBottom:6}},
+        "🔑 "+(ar?"إدخال API Key من دفترة":"Enter Daftra API Key")),
+      el("div",{style:{fontSize:11,color:G.txtF,marginBottom:20,lineHeight:1.7}},
+        ar?"اذهب إلى دفترة ← إعدادات الحساب ← API Key وانسخه هنا"
+          :"Go to Daftra → Account Settings → API Key and paste it here"),
+      // API Key input
+      el("div",{style:{marginBottom:14}},
+        el("label",{style:{fontSize:11,fontWeight:700,color:G.txt,display:"block",marginBottom:5}},
+          ar?"🔑 الـ API Key (مطلوب)":"🔑 API Key (required)"),
+        el("input",{
+          type:"text", value:inputKey,
+          onChange:e=>setInputKey(e.target.value),
+          placeholder:ar?"الصق الـ API Key هنا...":"Paste your API Key here...",
+          style:{width:"100%",padding:"10px 12px",borderRadius:8,border:`1.5px solid ${G.bdr}`,fontSize:12,fontFamily:"'Cairo',sans-serif",outline:"none",direction:"ltr"},
+          onKeyDown:e=>e.key==="Enter"&&connectWithApiKey(),
+        })
+      ),
+      // Subdomain input
+      el("div",{style:{marginBottom:20}},
+        el("label",{style:{fontSize:11,fontWeight:700,color:G.txt,display:"block",marginBottom:5}},
+          ar?"🌐 اسم الشركة في دفترة (اختياري)":"🌐 Company subdomain (optional)"),
+        el("div",{style:{display:"flex",alignItems:"center",gap:6}},
+          el("input",{
+            type:"text", value:inputSub,
+            onChange:e=>setInputSub(e.target.value),
+            placeholder:ar?"مثال: mycompany":"e.g. mycompany",
+            style:{flex:1,padding:"10px 12px",borderRadius:8,border:`1.5px solid ${G.bdr}`,fontSize:12,fontFamily:"'Cairo',sans-serif",outline:"none",direction:"ltr"},
+          }),
+          el("span",{style:{fontSize:11,color:G.txtF,whiteSpace:"nowrap"}},".daftra.com")
+        ),
+        el("div",{style:{fontSize:10,color:G.txtF,marginTop:4}},
+          ar?"الرابط الموجود في متصفحك عند فتح دفترة"
+            :"The subdomain shown in your browser when using Daftra")
+      ),
+      // Buttons
+      el("div",{style:{display:"flex",gap:10}},
+        el("button",{
+          onClick:connectWithApiKey,
+          style:{flex:1,padding:"11px",borderRadius:8,border:"none",background:G.gold,color:"white",fontSize:13,fontWeight:800,cursor:"pointer",fontFamily:"inherit",boxShadow:`0 2px 10px ${G.gold}50`}},
+          ar?"🔗 اتصال":"🔗 Connect"),
+        el("button",{
+          onClick:()=>{setShowApiModal(false);setInputKey("");setInputSub("");},
+          style:{padding:"11px 16px",borderRadius:8,border:`1px solid ${G.bdr}`,background:G.sur,color:G.txtD,fontSize:12,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}},
+          ar?"إلغاء":"Cancel")
+      ),
+      // Help text
+      el("div",{style:{marginTop:16,padding:"10px 14px",background:G.goldL,borderRadius:8,fontSize:10,color:G.goldD,lineHeight:1.7}},
+        el("strong",null,ar?"📍 أين تجد الـ API Key:":"📍 Where to find API Key:"),
+        el("br"),
+        ar?"دفترة ← الإعدادات ← إعدادات الحساب ← API Key":"Daftra → Settings → Account Settings → API Key")
+    )
+  );
+
   // ── KPIs ─────────────────────────────────────────────────
   const fd = useMemo(()=>({
     invoices:         byPeriod(data.invoices,         period),
@@ -465,8 +540,12 @@ function App() {
               el("button",{onClick:loadRealData,style:{padding:"5px 12px",borderRadius:7,border:`1px solid ${G.gold}`,background:G.goldL,color:G.goldD,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}},ar?"🔄 تحديث":"🔄 Refresh"),
               el("button",{onClick:disconnect,style:{padding:"5px 12px",borderRadius:7,border:`1px solid ${G.neg}40`,background:G.neg+"10",color:G.neg,fontSize:10,fontWeight:700,cursor:"pointer",fontFamily:"inherit"}},ar?"⏏ قطع":"⏏ Disconnect")
             )
-          :el("button",{onClick:loginDaftra,style:{padding:"7px 18px",borderRadius:8,border:"none",background:G.gold,color:"white",fontSize:12,fontWeight:800,cursor:"pointer",fontFamily:"inherit",boxShadow:`0 2px 10px ${G.gold}60`}},
-              ar?"🔗 تسجيل دخول بدفترة":"🔗 Connect Daftra")
+          :el(React.Fragment,null,
+              el("button",{onClick:loginDaftra,style:{padding:"7px 14px",borderRadius:8,border:"none",background:G.gold,color:"white",fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit",boxShadow:`0 2px 10px ${G.gold}60`}},
+                ar?"🔗 دخول بـ OAuth":"🔗 OAuth"),
+              el("button",{onClick:()=>setShowApiModal(true),style:{padding:"7px 14px",borderRadius:8,border:`2px solid ${G.gold}`,background:"white",color:G.goldD,fontSize:11,fontWeight:800,cursor:"pointer",fontFamily:"inherit"}},
+                ar?"🔑 API Key":"🔑 API Key")
+            )
       )
     );
   };
@@ -822,6 +901,7 @@ function App() {
   // ══ RENDER ═══════════════════════════════════════════════
   return el("div",{style:{minHeight:"100vh",background:G.bg,color:G.txt,fontFamily:"'Cairo',sans-serif",direction:dir}},
     mode==="loading"&&el(LoadingOverlay),
+    showApiModal&&el(ApiModal),
     !mob&&el(Sidebar),
     mob&&el(BottomNav),
     el("main",{style:{[ar?"marginRight":"marginLeft"]:SW,minHeight:"100vh"}},
