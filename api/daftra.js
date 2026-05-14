@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════════
 //  CLink · Daftra API Proxy — api/daftra.js
-//  Fix: better logging + token_type validation
+//  Fix: Daftra REST API uses apikey header for ALL auth
 // ═══════════════════════════════════════════════════════════
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -11,26 +11,30 @@ export default async function handler(req, res) {
   const { subdomain, apikey, endpoint, token_type } = req.query;
 
   if (!apikey || !endpoint) {
-    return res.status(400).json({ success: false, error: "missing_params", required: ["apikey", "endpoint"] });
+    return res.status(400).json({
+      success: false,
+      error: "missing_params",
+      required: ["apikey", "endpoint"],
+    });
   }
 
-  // ✅ بناء الـ headers حسب نوع التوثيق
-  const headers = { Accept: "application/json", "Content-Type": "application/json" };
+  // ✅ Daftra REST API uses apikey header for ALL requests
+  // including OAuth Bearer tokens — Authorization: Bearer is NOT supported
+  const headers = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+    "apikey": apikey,
+  };
 
-  // token_type=bearer → OAuth | غيره → API Key
-  if ((token_type || "").toLowerCase() === "bearer") {
-    headers["Authorization"] = `Bearer ${apikey}`;
-    console.log("[CLink] Using Bearer token for endpoint:", endpoint);
-  } else {
-    headers["apikey"] = apikey;
-    console.log("[CLink] Using apikey for endpoint:", endpoint);
-  }
+  console.log("[CLink] Calling endpoint:", endpoint, "| token_type:", token_type);
 
-  // ✅ ترتيب محاولات الـ URL
+  // ✅ Build URL list to try
   const urls = [];
   if (subdomain && subdomain.trim()) {
-    // نظف الـ subdomain من أي http أو .daftra.com لو جاء كامل
-    const clean = subdomain.replace(/https?:\/\//i, "").replace(/\.daftra\.com.*/i, "").trim();
+    const clean = subdomain
+      .replace(/https?:\/\//i, "")
+      .replace(/\.daftra\.com.*/i, "")
+      .trim();
     if (clean) {
       urls.push(`https://${clean}.daftra.com/api2/${endpoint}`);
     }
@@ -51,7 +55,7 @@ export default async function handler(req, res) {
       if (r.status === 401) {
         return res.status(401).json({
           success: false,
-          error:   "invalid_token",
+          error: "invalid_token",
           message: "التوثيق فشل — تحقق من التوكن أو أعد تسجيل الدخول",
           url,
         });
@@ -60,15 +64,15 @@ export default async function handler(req, res) {
       if (r.status === 403) {
         return res.status(403).json({
           success: false,
-          error:   "forbidden",
-          message: "لا توجد صلاحية لهذه البيانات — تحقق من الـ scopes في دفترة",
+          error: "forbidden",
+          message: "لا توجد صلاحية لهذه البيانات — تحقق من الصلاحيات في دفترة",
           url,
         });
       }
 
       if (r.status === 404) {
-        lastErr = `404 — endpoint not found: ${url}`;
-        continue; // جرب الـ URL التالي
+        lastErr = `404 — not found: ${url}`;
+        continue;
       }
 
       if (!r.ok) {
@@ -87,9 +91,9 @@ export default async function handler(req, res) {
 
   return res.status(500).json({
     success: false,
-    error:   "all_urls_failed",
+    error: "all_urls_failed",
     message: lastErr || "فشل الاتصال بجميع endpoints",
-    tried:   urls,
+    tried: urls,
     last_status: lastStatus,
   });
 }
