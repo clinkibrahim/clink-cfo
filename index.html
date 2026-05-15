@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>CLink· CFO Dashboard v5</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
-<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script crossorigin src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#FFFDF7;font-family:'Cairo',sans-serif}
@@ -22,7 +22,12 @@ body{background:#FFFDF7;font-family:'Cairo',sans-serif}
 </head>
 <body>
 <div id="root"></div>
-<script type="text/babel">
+<script>
+window.addEventListener('load', function() {
+if (typeof React === 'undefined') {
+  document.getElementById('root').innerHTML = '<div style="padding:40px;text-align:center;font-family:sans-serif"><h2>⚠️ خطأ في تحميل React</h2><p>تحقق من اتصال الإنترنت ثم أعد تحميل الصفحة</p></div>';
+  return;
+}
 const {useState,useEffect,useMemo,useCallback,useRef}=React;
 const G={bg:"#FFFDF7",sur:"#FEF8ED",sur2:"#FDF3D8",bdr:"#E8D090",bdrS:"#F2E4B0",gold:"#C8A84B",goldD:"#9B7820",goldP:"#C8A84B18",goldL:"#FFF8E0",txt:"#1E1408",txtD:"#5C4020",txtF:"#9B7840",pos:"#1A6B1A",neg:"#B03020",wrn:"#C07010",inf:"#1A5C8A",pur:"#5B21B6",shd:"0 2px 12px rgba(200,168,75,0.12)"};
 const CURR=[{code:"EGP",s:"ج.م",sE:"EGP",n:"الجنيه المصري",nE:"Egyptian Pound",f:"🇪🇬",rate:1},{code:"SAR",s:"ر.س",sE:"SAR",n:"الريال السعودي",nE:"Saudi Riyal",f:"🇸🇦",rate:0.079},{code:"AED",s:"د.إ",sE:"AED",n:"الدرهم الإماراتي",nE:"UAE Dirham",f:"🇦🇪",rate:0.082},{code:"KWD",s:"د.ك",sE:"KWD",n:"الدينار الكويتي",nE:"Kuwaiti Dinar",f:"🇰🇼",rate:0.0069},{code:"BHD",s:"د.ب",sE:"BHD",n:"الدينار البحريني",nE:"Bahraini Dinar",f:"🇧🇭",rate:0.0085},{code:"QAR",s:"ر.ق",sE:"QAR",n:"الريال القطري",nE:"Qatari Riyal",f:"🇶🇦",rate:0.082},{code:"JOD",s:"د.أ",sE:"JOD",n:"الدينار الأردني",nE:"Jordanian Dinar",f:"🇯🇴",rate:0.0159}];
@@ -609,7 +614,7 @@ function App(){
          {k:"netMargin",l:ar?"هامش الصافي":"Net Margin",u:"%",min:0,max:50},
          {k:"collectionRate",l:ar?"نسبة التحصيل":"Collection Rate",u:"%",min:0,max:100},
          {k:"dso",l:"DSO",u:ar?" يوم":" days",min:10,max:120},
-         {k:"cashRunway",l:"Cash Runway",u:ar:" أشهر":" months",min:1,max:24}]
+         {k:"cashRunway",l:"Cash Runway",u:ar?" أشهر":" months",min:1,max:24}]
         .map(f=>el("div",{key:f.k},
           el("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:6}},
             el("label",{style:{fontSize:11,fontWeight:600,color:G.txt}},f.l),
@@ -655,6 +660,7 @@ function App(){
   );
 }
 ReactDOM.createRoot(document.getElementById("root")).render(el(App));
+}); // end load event
 </script>
 </body>
 </html>
