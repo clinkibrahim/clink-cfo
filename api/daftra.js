@@ -1,108 +1,60 @@
-// CLink CFO — Daftra API Proxy with Pagination
-// Fetches ALL pages automatically for complete data
+// api/daftra.js — CLink CFO v6 | Trial Balance Edition
+// Full pagination + date_from/date_to support
 
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+  if (req.method === "OPTIONS") return res.status(200).end();
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
-
-  const { apikey, endpoint, subdomain, token_type } = req.query;
+  const { apikey, endpoint, subdomain, token_type, date_from, date_to } = req.query;
 
   if (!apikey || !endpoint) {
-    return res.status(400).json({ error: 'Missing apikey or endpoint' });
+    return res.status(400).json({ error: "Missing apikey or endpoint" });
   }
 
-  // Build base URL
+  const NO_DATE   = ["journal_accounts", "treasuries"];
+  const NO_PAGES  = ["journal_accounts", "treasuries"];
+
   const base = subdomain
     ? `https://${subdomain}.daftra.com/api2`
-    : 'https://app.daftra.com/api2';
+    : `https://arabfoodgate.daftra.com/api2`;
 
-  // Build headers
-  const headers = {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-    'apikey': apikey,
-  };
-  if (token_type === 'bearer' || token_type === 'Bearer') {
-    headers['Authorization'] = `Bearer ${apikey}`;
+  const headers = token_type === "bearer"
+    ? { Authorization: `Bearer ${apikey}` }
+    : { apikey };
+
+  // Single-page (no pagination needed)
+  if (NO_PAGES.includes(endpoint)) {
+    try {
+      const r = await fetch(`${base}/${endpoint}.json`, { headers });
+      if (!r.ok) return res.status(r.status).json({ error: `Daftra ${r.status}` });
+      return res.status(200).json(await r.json());
+    } catch (e) {
+      return res.status(500).json({ error: e.message });
+    }
   }
 
-  // Endpoints that benefit from pagination (potentially many records)
-  const PAGINATED = [
-    'invoices', 'expenses', 'incomes', 'purchase_invoices',
-    'credit_notes', 'clients', 'suppliers', 'journals'
-  ];
-  const needsPagination = PAGINATED.includes(endpoint);
+  // Paginated fetch
+  const all = [];
+  for (let page = 1; page <= 20; page++) {
+    const p = new URLSearchParams({ page, limit: 100 });
+    if (!NO_DATE.includes(endpoint) && date_from) p.append("date_from", date_from);
+    if (!NO_DATE.includes(endpoint) && date_to)   p.append("date_to",   date_to);
 
-  try {
-    // ── Fetch page 1 ──────────────────────────────────────────
-    const url1 = `${base}/${endpoint}.json?page=1&limit=100`;
-    const res1 = await fetch(url1, { headers });
-
-    if (!res1.ok) {
-      const errText = await res1.text();
-      return res.status(res1.status).json({
-        error: `Daftra API error: ${res1.status}`,
-        detail: errText.substring(0, 200)
-      });
+    try {
+      const r = await fetch(`${base}/${endpoint}.json?${p}`, { headers });
+      if (!r.ok) { if (page === 1) return res.status(r.status).json({ error: `Daftra ${r.status}` }); break; }
+      const json = await r.json();
+      const items = Array.isArray(json.data) ? json.data
+                  : Array.isArray(json)       ? json
+                  : Object.values(json).find(v => Array.isArray(v)) || [];
+      if (!items.length) break;
+      all.push(...items);
+      if (items.length < 100) break;
+    } catch (e) {
+      if (page === 1) return res.status(500).json({ error: e.message });
+      break;
     }
-
-    const data1 = await res1.json();
-
-    // No pagination needed or only one page
-    if (!needsPagination || !data1.pagination || data1.pagination.page_count <= 1) {
-      return res.status(200).json(data1);
-    }
-
-    const totalPages = parseInt(data1.pagination.page_count) || 1;
-    const totalRecords = parseInt(data1.pagination.total_results) || 0;
-
-    // Cap at 20 pages (~2000 records) to avoid Vercel timeout
-    const maxPages = Math.min(totalPages, 20);
-
-    // ── Fetch remaining pages in parallel ─────────────────────
-    const pageNums = [];
-    for (let p = 2; p <= maxPages; p++) pageNums.push(p);
-
-    // Batch in groups of 5 to avoid overwhelming the API
-    const BATCH = 5;
-    let allData = [...(data1.data || [])];
-
-    for (let i = 0; i < pageNums.length; i += BATCH) {
-      const batch = pageNums.slice(i, i + BATCH);
-      const results = await Promise.all(
-        batch.map(async (page) => {
-          try {
-            const r = await fetch(`${base}/${endpoint}.json?page=${page}&limit=100`, { headers });
-            if (!r.ok) return [];
-            const d = await r.json();
-            return Array.isArray(d.data) ? d.data : [];
-          } catch {
-            return [];
-          }
-        })
-      );
-      results.forEach(records => { allData = allData.concat(records); });
-    }
-
-    // Return merged response
-    return res.status(200).json({
-      code: 200,
-      result: 'successful',
-      data: allData,
-      pagination: {
-        page: 1,
-        page_count: totalPages,
-        total_results: totalRecords,
-        fetched_pages: maxPages,
-        total_fetched: allData.length,
-        truncated: totalPages > maxPages
-      }
-    });
-
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
   }
+  return res.status(200).json({ data: all });
 }
