@@ -65,7 +65,7 @@ const COLORS=[G.inf,G.gold,G.pos,G.pur,G.wrn,G.neg,"#E84393","#00BCD4"];
 
 function App(){
   const [lang,setLang]=useState("AR");const [money,setMoney]=useState(CURR[0]);const [period,setPeriod]=useState("YTD");const [width,setWidth]=useState(window.innerWidth);const [page,setPage]=useState("home");const [showM,setShowM]=useState(false);
-  const [mode,setMode]=useState("demo");const [data,setData]=useState(DEMO);const [token,setToken]=useState(null);const [tokenType,setTokenType]=useState("apikey");const [subdomain,setSubdomain]=useState("");const [lastSync,setLastSync]=useState(null);const [loadMsg,setLoadMsg]=useState("");const [fetchLog,setFetchLog]=useState([]);const [toasts,setToasts]=useState([]);const [autoMin,setAutoMin]=useState(5);const [showApi,setShowApi]=useState(false);const [iKey,setIKey]=useState("");const [iSub,setISub]=useState("");const [targets,setTargets]=useState({grossMargin:40,netMargin:15,collectionRate:80,dso:35,cashRunway:6});
+  const [mode,setMode]=useState("demo");const [data,setData]=useState(DEMO);const [token,setToken]=useState(null);const [tokenType,setTokenType]=useState("apikey");const [subdomain,setSubdomain]=useState("");const [lastSync,setLastSync]=useState(null);const [loadMsg,setLoadMsg]=useState("");const [fetchLog,setFetchLog]=useState([]);const [rawDebug,setRawDebug]=useState({});const [toasts,setToasts]=useState([]);const [autoMin,setAutoMin]=useState(5);const [showApi,setShowApi]=useState(false);const [iKey,setIKey]=useState("");const [iSub,setISub]=useState("");const [targets,setTargets]=useState({grossMargin:40,netMargin:15,collectionRate:80,dso:35,cashRunway:6});
   const autoRef=useRef(null);
   const ar=lang==="AR";const dir=ar?"rtl":"ltr";const SY=ar?money.s:money.sE;const R=money.rate;const mob=width<640;const tab=width>=640&&width<1024;const SW=mob?0:tab?58:230;
   useEffect(()=>{const fn=()=>setWidth(window.innerWidth);window.addEventListener("resize",fn);return()=>window.removeEventListener("resize",fn);},[]);
@@ -73,7 +73,8 @@ function App(){
   const fetchOne=useCallback(async(ep)=>{const p=new URLSearchParams({apikey:token,endpoint:ep,token_type:tokenType});if(subdomain)p.append("subdomain",subdomain);const res=await fetch(`/api/daftra?${p}`);const json=await res.json();if(!res.ok)throw new Error(json.message||`HTTP ${res.status}`);return json;},[token,tokenType,subdomain]);
   const loadReal=useCallback(async()=>{
     if(!token)return;setMode("loading");setData(EMPTY);const log=[];
-    const step=async(label,ep,key,mapFn)=>{setLoadMsg(ar?`جاري جلب ${label}...`:`Loading ${label}...`);try{const raw=await fetchOne(ep);const items=parseResp(raw,key).map(mapFn);log.push({label,count:items.length,ok:true});return items;}catch(e){log.push({label,count:0,ok:false});return [];}};
+    const dbg={};
+    const step=async(label,ep,key,mapFn)=>{setLoadMsg(ar?`جاري جلب ${label}...`:`Loading ${label}...`);try{const raw=await fetchOne(ep);const arr=parseResp(raw,key);dbg[ep]=arr.length>0?arr[0]:null;const items=arr.map(mapFn);log.push({label,count:items.length,ok:true});return items;}catch(e){log.push({label,count:0,ok:false,err:e.message});return [];}};
     const inv=await step(ar?"الفواتير":"Invoices","invoices","Invoices",mapInv);
     const inc=await step(ar?"الإيرادات الأخرى":"Other Income","incomes","Incomes",mapInc);
     const pur=await step(ar?"المشتريات":"Purchases","purchase_invoices","PurchaseInvoices",mapPur);
@@ -82,7 +83,7 @@ function App(){
     const sup=await step(ar?"الموردون":"Suppliers","suppliers","Suppliers",mapSup);
     const tre=await step(ar?"الخزينة":"Treasuries","treasuries","Treasuries",mapTre);
     setData({invoices:inv,incomes:inc,purchaseInvoices:pur,expenses:exp,clients:cli,suppliers:sup,treasuries:tre});
-    setFetchLog(log);setLastSync(new Date());setLoadMsg("");
+    setFetchLog(log);setRawDebug(dbg);setLastSync(new Date());setLoadMsg("");
     const ok=log.filter(l=>l.ok).length;
     if(ok===log.length){setMode("connected");toast(ar?`✅ تم جلب ${inv.length} فاتورة`:`✅ Loaded ${inv.length} invoices`,"success");}
     else if(ok>0){setMode("connected");toast(ar?`⚠️ ${ok}/${log.length} مصادر`:`⚠️ ${ok}/${log.length} sources`,"warn");}
@@ -623,6 +624,19 @@ function App(){
           el("input",{type:"range",min:f.min,max:f.max,value:targets[f.k],onChange:e=>setTargets(p=>({...p,[f.k]:parseInt(e.target.value)})),style:{width:"100%",accentColor:G.gold}})
         ))
       )
+    ),
+    Object.keys(rawDebug).length>0&&el("div",{style:{background:"white",border:`2px solid ${G.gold}`,borderRadius:14,padding:"18px 20px",boxShadow:G.shd,marginBottom:14}},
+      el("div",{style:{fontSize:14,fontWeight:700,color:G.goldD,marginBottom:4}},"🔬 "+(ar?"فحص البيانات الخام — Debug":"Raw Data Inspector — Debug")),
+      el("div",{style:{fontSize:11,color:G.txtF,marginBottom:14}},ar?"أول سجل خام من كل Endpoint — يساعد في تصحيح الأرقام":"First raw record from each endpoint — helps fix field mapping"),
+      Object.entries(rawDebug).map(([ep,item])=>el("div",{key:ep,style:{marginBottom:12,borderBottom:`1px solid ${G.bdrS}`,paddingBottom:12}},
+        el("div",{style:{display:"flex",alignItems:"center",gap:8,marginBottom:8}},
+          el("span",{style:{padding:"2px 10px",borderRadius:20,background:item?G.pos+"18":G.neg+"18",color:item?G.pos:G.neg,fontSize:10,fontWeight:700,border:`1px solid ${item?G.pos+"30":G.neg+"30"}`}},item?"✅ بيانات موجودة":"❌ فارغ"),
+          el("span",{style:{fontSize:12,fontWeight:700,color:G.goldD,direction:"ltr"}},`/${ep}`)
+        ),
+        item&&el("div",{style:{background:G.sur2,borderRadius:8,padding:"10px 12px",fontFamily:"monospace",fontSize:10,color:G.txt,direction:"ltr",overflowX:"auto",whiteSpace:"pre-wrap",lineHeight:1.8}},
+          JSON.stringify(item,null,2)
+        )
+      ))
     ),
     el("div",{style:{background:G.sur,border:`1px solid ${G.bdrS}`,borderRadius:14,padding:"14px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:12}},
       el(Logo,{size:32}),
