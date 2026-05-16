@@ -1,99 +1,108 @@
-// ═══════════════════════════════════════════════════════════
-//  CLink · Daftra API Proxy — api/daftra.js
-//  Fix: Daftra REST API uses apikey header for ALL auth
-// ═══════════════════════════════════════════════════════════
-export default async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  if (req.method === "OPTIONS") return res.status(200).end();
+// CLink CFO — Daftra API Proxy with Pagination
+// Fetches ALL pages automatically for complete data
 
-  const { subdomain, apikey, endpoint, token_type } = req.query;
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
+  const { apikey, endpoint, subdomain, token_type } = req.query;
 
   if (!apikey || !endpoint) {
-    return res.status(400).json({
-      success: false,
-      error: "missing_params",
-      required: ["apikey", "endpoint"],
-    });
+    return res.status(400).json({ error: 'Missing apikey or endpoint' });
   }
 
-  // ✅ Daftra REST API uses apikey header for ALL requests
-  // including OAuth Bearer tokens — Authorization: Bearer is NOT supported
+  // Build base URL
+  const base = subdomain
+    ? `https://${subdomain}.daftra.com/api2`
+    : 'https://app.daftra.com/api2';
+
+  // Build headers
   const headers = {
-    Accept: "application/json",
-    "Content-Type": "application/json",
-    "apikey": apikey,
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    'apikey': apikey,
   };
-
-  console.log("[CLink] Calling endpoint:", endpoint, "| token_type:", token_type);
-
-  // ✅ Build URL list to try
-  const urls = [];
-  if (subdomain && subdomain.trim()) {
-    const clean = subdomain
-      .replace(/https?:\/\//i, "")
-      .replace(/\.daftra\.com.*/i, "")
-      .trim();
-    if (clean) {
-      urls.push(`https://${clean}.daftra.com/api2/${endpoint}`);
-    }
-  }
-  urls.push(`https://app.daftra.com/api2/${endpoint}`);
-
-  console.log("[CLink] Trying URLs:", urls);
-
-  let lastErr = null;
-  let lastStatus = null;
-
-  for (const url of urls) {
-    try {
-      const r = await fetch(url, { headers });
-      lastStatus = r.status;
-      console.log("[CLink] Response from", url, "→ status:", r.status);
-
-      if (r.status === 401) {
-        return res.status(401).json({
-          success: false,
-          error: "invalid_token",
-          message: "التوثيق فشل — تحقق من التوكن أو أعد تسجيل الدخول",
-          url,
-        });
-      }
-
-      if (r.status === 403) {
-        return res.status(403).json({
-          success: false,
-          error: "forbidden",
-          message: "لا توجد صلاحية لهذه البيانات — تحقق من الصلاحيات في دفترة",
-          url,
-        });
-      }
-
-      if (r.status === 404) {
-        lastErr = `404 — not found: ${url}`;
-        continue;
-      }
-
-      if (!r.ok) {
-        lastErr = `HTTP ${r.status} from ${url}`;
-        continue;
-      }
-
-      const data = await r.json();
-      return res.status(200).json(data);
-
-    } catch (e) {
-      lastErr = e.message;
-      console.error("[CLink] Fetch error for", url, ":", e.message);
-    }
+  if (token_type === 'bearer' || token_type === 'Bearer') {
+    headers['Authorization'] = `Bearer ${apikey}`;
   }
 
-  return res.status(500).json({
-    success: false,
-    error: "all_urls_failed",
-    message: lastErr || "فشل الاتصال بجميع endpoints",
-    tried: urls,
-    last_status: lastStatus,
-  });
+  // Endpoints that benefit from pagination (potentially many records)
+  const PAGINATED = [
+    'invoices', 'expenses', 'incomes', 'purchase_invoices',
+    'credit_notes', 'clients', 'suppliers', 'journals'
+  ];
+  const needsPagination = PAGINATED.includes(endpoint);
+
+  try {
+    // ── Fetch page 1 ──────────────────────────────────────────
+    const url1 = `${base}/${endpoint}.json?page=1&limit=100`;
+    const res1 = await fetch(url1, { headers });
+
+    if (!res1.ok) {
+      const errText = await res1.text();
+      return res.status(res1.status).json({
+        error: `Daftra API error: ${res1.status}`,
+        detail: errText.substring(0, 200)
+      });
+    }
+
+    const data1 = await res1.json();
+
+    // No pagination needed or only one page
+    if (!needsPagination || !data1.pagination || data1.pagination.page_count <= 1) {
+      return res.status(200).json(data1);
+    }
+
+    const totalPages = parseInt(data1.pagination.page_count) || 1;
+    const totalRecords = parseInt(data1.pagination.total_results) || 0;
+
+    // Cap at 20 pages (~2000 records) to avoid Vercel timeout
+    const maxPages = Math.min(totalPages, 20);
+
+    // ── Fetch remaining pages in parallel ─────────────────────
+    const pageNums = [];
+    for (let p = 2; p <= maxPages; p++) pageNums.push(p);
+
+    // Batch in groups of 5 to avoid overwhelming the API
+    const BATCH = 5;
+    let allData = [...(data1.data || [])];
+
+    for (let i = 0; i < pageNums.length; i += BATCH) {
+      const batch = pageNums.slice(i, i + BATCH);
+      const results = await Promise.all(
+        batch.map(async (page) => {
+          try {
+            const r = await fetch(`${base}/${endpoint}.json?page=${page}&limit=100`, { headers });
+            if (!r.ok) return [];
+            const d = await r.json();
+            return Array.isArray(d.data) ? d.data : [];
+          } catch {
+            return [];
+          }
+        })
+      );
+      results.forEach(records => { allData = allData.concat(records); });
+    }
+
+    // Return merged response
+    return res.status(200).json({
+      code: 200,
+      result: 'successful',
+      data: allData,
+      pagination: {
+        page: 1,
+        page_count: totalPages,
+        total_results: totalRecords,
+        fetched_pages: maxPages,
+        total_fetched: allData.length,
+        truncated: totalPages > maxPages
+      }
+    });
+
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
 }
