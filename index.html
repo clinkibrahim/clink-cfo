@@ -101,13 +101,13 @@ function App(){
   const K=useMemo(()=>{
     const rev=fd.inv.reduce((s,i)=>s+i.amount,0),revPd=fd.inv.reduce((s,i)=>s+i.paid,0),otInc=fd.inc.reduce((s,i)=>s+i.amount,0),totRev=rev;
     const exp=fd.exp.reduce((s,e)=>s+e.amount,0),pur=fd.pur.reduce((s,p)=>s+p.amount,0),purPd=fd.pur.reduce((s,p)=>s+p.paid,0);
-    const gp=rev-pur,ebit=gp-exp,pbt=ebit+otInc,tax=Math.max(pbt*0.225,0),np=pbt-tax;
+    const gp=rev-pur,ebit=gp-exp,tax=Math.max(ebit*0.225,0),np=ebit-tax;
     const arBal=data.invoices.reduce((s,i)=>s+(i.amount-i.paid),0),apBal=data.purchaseInvoices.reduce((s,p)=>s+(p.amount-p.paid),0);
     const ovAR=data.clients.reduce((s,c)=>s+(c.overdue||0),0),ovAP=data.suppliers.reduce((s,s2)=>s+(s2.overdue||0),0);
     const cash=data.treasuries.reduce((s,t)=>s+((t.currency==="EGP"||!t.currency||t.currency==="EGP")?t.balance:t.currency==="USD"?t.balance*50:t.balance),0);
     const annRev=period==="MTD"?rev*12:period==="QTD"?rev*4:rev,annPur=period==="MTD"?pur*12:period==="QTD"?pur*4:pur;
     const dso=annRev>0?(arBal/(annRev/365)):0,dpo=annPur>0?(apBal/(annPur/365)):0,ccc=dso-dpo;
-    const gm=rev>0?(gp/rev)*100:0,nm=(rev+otInc)>0?(np/(rev+otInc))*100:0,ebitM=rev>0?(ebit/rev)*100:0;
+    const gm=rev>0?(gp/rev)*100:0,nm=rev>0?(np/rev)*100:0,ebitM=rev>0?(ebit/rev)*100:0;
     const burn=period==="YTD"?(exp/12):period==="QTD"?(exp/3):exp,runway=burn>0?cash/burn:0,coll=rev>0?(revPd/rev)*100:0;
     const mRev=Array(12).fill(0),mExp=Array(12).fill(0),mNP=Array(12).fill(0);
     data.invoices.forEach(i=>{const m=mOf(i.date);if(m>=0)mRev[m]+=i.amount;});
@@ -122,7 +122,7 @@ function App(){
     fd.pur.filter(p=>p.status!=="paid").forEach(p=>{const d=Math.floor((today-new Date(p.date))/(864e5));const b=Math.max(agBkt(d)-1,0);if(b<4)apAg[b]+=p.amount-p.paid;});
     const opExp=fd.exp.filter(e=>e.type==="operating").reduce((s,e)=>s+e.amount,0);
     const gaExp=fd.exp.filter(e=>e.type!=="operating").reduce((s,e)=>s+e.amount,0);
-    return{rev,revPd,otInc,totRev,exp,pur,purPd,gp,ebit,pbt,tax,np,arBal,apBal,ovAR,ovAP,cash,dso,dpo,ccc,gm,nm,ebitM,burn,runway,coll,mRev,mExp,mNP,topC,expCat,opExp,gaExp,arAg,apAg,invCnt:fd.inv.length};
+    return{rev,revPd,otInc,totRev,exp,pur,purPd,gp,ebit,tax,np,arBal,apBal,ovAR,ovAP,cash,dso,dpo,ccc,gm,nm,ebitM,burn,runway,coll,mRev,mExp,mNP,topC,expCat,opExp,gaExp,arAg,apAg,invCnt:fd.inv.length};
   },[fd,data,period]);
 
   const ALTS=useMemo(()=>[
@@ -161,7 +161,7 @@ function App(){
         critA.length>0&&el("div",{style:{marginTop:8,display:"inline-flex",alignItems:"center",gap:6,background:"rgba(255,255,255,.2)",borderRadius:8,padding:"4px 10px"}},el("span",null,"🚨"),el("span",{style:{fontSize:10,color:"white",fontWeight:700}},`${critA.length} ${ar?"تنبيه عاجل":"critical"}`))
       ),
       el("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,textAlign:"center"}},
-        [{l:ar?"هامش إجمالي":"GM",v:`${fmtD(K.gm)}%`,ok:K.gm>=targets.grossMargin},{l:ar?"هامش صافي":"NM",v:`${fmtD(K.nm)}%`,ok:K.nm>=targets.netMargin},{l:"Cash Runway",v:`${fmtD(K.runway,1)}m`,ok:K.runway>=targets.cashRunway},{l:"CCC",v:`${fmtD(K.ccc,0)}d`,ok:K.ccc<30}]
+        [{l:ar?"المصروفات":"Expenses",v:`${fmt(K.exp*R)}`,ok:K.exp<K.cash},{l:ar?"هامش صافي":"NM",v:`${fmtD(K.nm)}%`,ok:K.nm>=targets.netMargin},{l:"Cash Runway",v:`${fmtD(K.runway,1)}m`,ok:K.runway>=targets.cashRunway},{l:"EBIT",v:`${fmtD(K.ebitM)}%`,ok:K.ebit>=0}]
         .map((x,i)=>el("div",{key:i,style:{background:"rgba(255,255,255,.15)",borderRadius:8,padding:"6px 10px"}},el("div",{style:{fontSize:9,color:"rgba(255,255,255,.75)"}},x.l),el("div",{style:{fontSize:13,fontWeight:800,color:"white"}},x.v),el("div",{style:{fontSize:10}},x.ok?"✅":"⚠️")))
       )
     ),
@@ -174,7 +174,7 @@ function App(){
     el("div",{style:{display:"grid",gridTemplateColumns:mob?"1fr 1fr":"repeat(4,1fr)",gap:12,marginBottom:16}},
       el(KpiCard,{label:ar?"الإيراد التشغيلي":"Op. Revenue",val:`${fmt(K.rev*R)} ${SY}`,sub:`${K.invCnt} ${ar?"فاتورة":"inv"}`,c:G.inf,icon:"📄",spark:K.mRev}),
       el(KpiCard,{label:ar?"إجمالي الربح":"Gross Profit",val:`${fmt(K.gp*R)} ${SY}`,sub:`GM: ${fmtD(K.gm)}%`,c:G.pos,icon:"📈",badge:K.gm>=targets.grossMargin?"✅":"⚠️"}),
-      el(KpiCard,{label:"EBIT",val:`${fmt(K.ebit*R)} ${SY}`,sub:`${fmtD(K.ebitM)}%`,c:G.gold,icon:"💡"}),
+      el(KpiCard,{label:ar?"إجمالي المصروفات":"Total Expenses",val:`${fmt(K.exp*R)} ${SY}`,sub:`${fd.exp.length} ${ar?"بند":"items"}`,c:G.neg,icon:"📊",spark:K.mExp}),
       el(KpiCard,{label:ar?"صافي الربح":"Net Profit",val:`${fmt(K.np*R)} ${SY}`,sub:`NM: ${fmtD(K.nm)}%`,c:K.np>=0?G.pur:G.neg,icon:"💰",badge:K.nm>=targets.netMargin?"✅":"⚠️"})
     ),
     el("div",{style:{display:"grid",gridTemplateColumns:mob?"1fr 1fr":"repeat(4,1fr)",gap:12,marginBottom:16}},
@@ -211,9 +211,7 @@ function App(){
          {l:ar?"إجمالي الربح":"Gross Profit",v:K.gp,c:G.pos,b:true,i:0,s:`GM: ${fmtD(K.gm)}%`,line:true},
          {l:ar?"(−) المصروفات التشغيلية":"(−) Operating Expenses",v:-K.exp,c:G.neg,b:false,i:1},
          {l:ar?"الربح التشغيلي (EBIT)":"Operating Profit (EBIT)",v:K.ebit,c:K.ebit>=0?G.gold:G.neg,b:true,i:0,s:`${fmtD(K.ebitM)}%`,line:true},
-         {l:ar?"(+) إيرادات أخرى وتمويل":"(+) Other Income / Financing",v:K.otInc,c:G.gold,b:false,i:1,note:true},
-         {l:ar?"الربح قبل الضريبة (PBT)":"Profit Before Tax (PBT)",v:K.pbt,c:K.pbt>=0?G.pur:G.neg,b:true,i:0,line:true},
-         {l:ar?"(−) الضريبة 22.5%":"(−) Tax 22.5%",v:-K.tax,c:G.neg,b:false,i:1},
+                  {l:ar?"(−) الضريبة 22.5%":"(−) Tax 22.5%",v:-K.tax,c:G.neg,b:false,i:1},
          {l:ar?"صافي الربح":"Net Profit",v:K.np,c:K.np>=0?G.pur:G.neg,b:true,i:0,s:`NM: ${fmtD(K.nm)}%`,big:true,line:true}]
         .map(({l,v,c,b,i,s,big,line},idx)=>el("div",{key:idx,style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:big?"12px 0 4px":`${line?"8px":"4px"} 0`,borderBottom:line?`1.5px solid ${G.bdr}`:`1px solid ${G.bdrS}`,borderTop:big?`2px solid ${G.bdr}`:"none",marginTop:big?4:0,[ar?"paddingRight":"paddingLeft"]:`${i*12}px`}},
           el("span",{style:{fontSize:big?12:10,color:b?G.txt:G.txtD,fontWeight:b?700:400}},l),
@@ -257,8 +255,8 @@ function App(){
     el(ExpBtn,{isAr:ar,onP:()=>window.print(),onE:doExcel,onPdf:()=>window.print()}),
     el("div",{style:{display:"grid",gridTemplateColumns:mob?"1fr 1fr":"repeat(3,1fr)",gap:12,marginBottom:14}},
       el(KpiCard,{label:ar?"إيراد تشغيلي":"Op. Revenue",val:`${fmt(K.rev*R)} ${SY}`,sub:`${K.invCnt} ${ar?"فاتورة":"inv"}`,c:G.inf}),
-      el(KpiCard,{label:ar?"إيرادات أخرى وتمويل":"Other Income / Financing",val:`${fmt(K.otInc*R)} ${SY}`,sub:ar?"تمويل شركاء+إيرادات متنوعة":"Financing + Misc Income",c:G.gold}),
-      el(KpiCard,{label:ar?"إجمالي الإيرادات":"Total Revenue",val:`${fmt(K.totRev*R)} ${SY}`,c:G.pur})
+      el(KpiCard,{label:ar?"تمويل الشركاء (حقوق ملكية)":"Partner Financing (Equity)",val:`${fmt(K.otInc*R)} ${SY}`,sub:ar?"⚠ لا يُدرج في قائمة الدخل":"⚠ Not included in P&L",c:G.wrn}),
+      el(KpiCard,{label:ar?"إجمالي الإيراد التشغيلي":"Total Operational Revenue",val:`${fmt(K.totRev*R)} ${SY}`,sub:ar?"من الفواتير فقط":"From invoices only",c:G.pur})
     ),
     el("div",{style:{background:"white",border:`1px solid ${G.bdr}`,borderRadius:14,padding:"16px 18px",boxShadow:G.shd,marginBottom:14}},
       el("div",{style:{fontSize:13,fontWeight:700,color:G.goldD,marginBottom:12}},ar?"📊 الإيراد الشهري":"📊 Monthly Revenue"),
@@ -542,8 +540,9 @@ function App(){
           el("thead",null,el("tr",null,[ar?"المؤشر":"KPI",ar?"القيمة":"Value",ar?"المعيار":"Benchmark",ar?"الحالة":"Status",ar?"الإجراء":"Action"].map(h=>el("th",{key:h,style:{textAlign:ar?"right":"left",padding:"8px 12px",fontSize:11,color:G.txtF,borderBottom:`2px solid ${G.bdr}`,fontWeight:700}},h)))),
           el("tbody",null,
             [
-              [ar?"إجمالي الإيرادات":"Total Revenue",`${fmt(K.totRev*R)} ${SY}`,"—",true,"—"],
-              [ar?"الإيراد التشغيلي":"Op. Revenue",`${fmt(K.rev*R)} ${SY}`,"—",true,"—"],
+              [ar?"إيراد تشغيلي (فواتير)":"Operational Revenue",`${fmt(K.rev*R)} ${SY}`,"—",true,"—"],
+              [ar?"إجمالي المصروفات":"Total Expenses",`${fmt(K.exp*R)} ${SY}`,"—",K.exp===0,K.exp===0?(ar?"لا مصروفات":"No expenses"):(ar?"راجع المصروفات":"Review expenses")],
+              [ar?"تكلفة المشتريات":"Cost of Purchases",`${fmt(K.pur*R)} ${SY}`,"—",true,"—"],
               [ar?"إجمالي الربح":"Gross Profit",`${fmt(K.gp*R)} ${SY}`,`≥${targets.grossMargin}%`,K.gm>=targets.grossMargin,K.gm>=targets.grossMargin?(ar?"ممتاز":"Excellent"):(ar?"راجع التكاليف":"Review costs")],
               [ar?"هامش إجمالي":"Gross Margin",`${fmtD(K.gm)}%`,`≥${targets.grossMargin}%`,K.gm>=targets.grossMargin,"—"],
               ["EBIT",`${fmt(K.ebit*R)} ${SY}`,"≥0",K.ebit>=0,K.ebit>=0?(ar?"إيجابي":"Positive"):(ar?"راجع فوراً":"Urgent")],
